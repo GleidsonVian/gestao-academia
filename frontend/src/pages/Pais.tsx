@@ -5,7 +5,7 @@ import { FrequenciaBox, ListaAvaliacoes, Medias } from "../components/Desempenho
 
 type Dados = {
   aluno: { nome: string; apelido: string | null; graduacao: string | null; turma: string | null; desde: string };
-  academia: { nome: string; modalidade: string; graduacoes: string[] };
+  academia: { nome: string; modalidade: string; graduacoes: string[]; contato_privacidade: string | null };
   frequencia: Frequencia;
   presencasRecentes: Presenca[];
   desempenho: { media: Record<string, number>; avaliacoes: Avaliacao[] };
@@ -52,6 +52,10 @@ export default function Pais() {
         <h2>Avaliações do professor</h2>
         {d.desempenho.avaliacoes.length ? <ListaAvaliacoes itens={d.desempenho.avaliacoes} /> : <p className="mudo">Nenhuma avaliação publicada ainda.</p>}
       </div>
+      <p className="rodape-lgpd">
+        <a href="/privacidade" target="_blank" rel="noreferrer">Política de privacidade</a>
+        {d.academia.contato_privacidade && <> · Contato: {d.academia.contato_privacidade}</>}
+      </p>
     </div>
   );
 }

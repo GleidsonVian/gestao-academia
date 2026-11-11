@@ -15,6 +15,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Pais from "./pages/Pais";
 import Inscricao from "./pages/Inscricao";
 import Inscricoes from "./pages/Inscricoes";
+import Privacidade from "./pages/Privacidade";
 import "./styles.css";
 
 function Protegido() {
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/entrar" element={<Login />} />
           <Route path="/acompanhar/:token" element={<Pais />} />
           <Route path="/inscricao/:token" element={<Inscricao />} />
+          <Route path="/privacidade" element={<Privacidade />} />
           <Route element={<Protegido />}>
             <Route index element={<Dashboard />} />
             <Route path="inscricoes" element={<Inscricoes />} />

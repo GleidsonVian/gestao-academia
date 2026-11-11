@@ -19,7 +19,6 @@ export default function AlunoForm({ aluno, onSalvo, onCancelar }: Props) {
     email: aluno?.email ?? "",
     observacoes: aluno?.observacoes ?? "",
     status: aluno?.status ?? "ativo",
-    autoriza_imagem: aluno?.autoriza_imagem ?? false,
   });
 
   useEffect(() => { api.get<Turma[]>("/api/turmas").then(setTurmas); }, []);
@@ -73,7 +72,6 @@ export default function AlunoForm({ aluno, onSalvo, onCancelar }: Props) {
           </label>
         )}
       </div>
-      <label className="check"><input type="checkbox" checked={f.autoriza_imagem} onChange={(e) => setF({ ...f, autoriza_imagem: e.target.checked })} /> Autoriza uso de imagem e voz (opcional — a matrícula não depende disso)</label>
       <label>Observações (internas)<textarea rows={3} value={f.observacoes} onChange={set("observacoes")} /></label>
       {erro && <p className="erro">{erro}</p>}
       <div className="acoes">

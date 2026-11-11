@@ -21,7 +21,7 @@ def me(u: Usuario = Depends(usuario_atual)):
         "usuario": {"id": u.id, "nome": u.nome, "email": u.email},
         "academia": {
             "id": a.id, "nome": a.nome, "modalidade": a.modalidade,
-            "graduacoes": a.graduacoes, "criterios": a.criterios,
+            "graduacoes": a.graduacoes, "criterios": a.criterios, "contato_privacidade": a.contato_privacidade,
         },
     }
 
@@ -32,6 +32,7 @@ def atualizar_academia(body: AcademiaIn, u: Usuario = Depends(usuario_atual), db
     a.nome, a.modalidade = body.nome.strip(), body.modalidade.strip()
     a.graduacoes = [g.strip() for g in body.graduacoes if g.strip()]
     a.criterios = [c.strip() for c in body.criterios if c.strip()]
+    a.contato_privacidade = (body.contato_privacidade or "").strip() or None
     db.commit()
     return {"ok": True}
 

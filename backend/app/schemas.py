@@ -27,6 +27,7 @@ class AcademiaIn(BaseModel):
     modalidade: str = Field(min_length=2, max_length=80)
     graduacoes: list[str] = Field(min_length=1)
     criterios: list[str] = Field(min_length=1)
+    contato_privacidade: str | None = Field(default=None, max_length=200)
 
 
 class TurmaIn(BaseModel):
@@ -44,7 +45,6 @@ class AlunoIn(BaseModel):
     email: str | None = None
     graduacao: str | None = None
     observacoes: str | None = None
-    autoriza_imagem: bool | None = None
     status: Literal["ativo", "afastado", "inativo"] = "ativo"
 
 
@@ -54,6 +54,21 @@ class AulaIn(BaseModel):
     titulo: str = Field(default="Aula", min_length=1, max_length=120)
     turma_id: int | None = None
     status: Literal["programada", "realizada", "cancelada"] = "programada"
+
+
+class ImagemIn(BaseModel):
+    autorizado: bool
+    observacao: str | None = Field(default=None, max_length=500)
+
+
+class AulasRecorrentesIn(BaseModel):
+    """Ex.: toda segunda e quarta às 18h, de 01/12 a 31/03."""
+    dias_semana: list[int] = Field(min_length=1, max_length=7)  # 0 = segunda ... 6 = domingo
+    data_inicio: date
+    data_fim: date
+    hora: str | None = Field(default=None, pattern="^[0-9]{2}:[0-9]{2}$")
+    titulo: str = Field(default="Aula", min_length=1, max_length=120)
+    turma_id: int | None = None
 
 
 class MarcacaoIn(BaseModel):

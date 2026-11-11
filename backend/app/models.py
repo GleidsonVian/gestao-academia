@@ -15,6 +15,7 @@ class Academia(Base):
     # listas configuráveis: funciona para qualquer modalidade
     graduacoes: Mapped[list] = mapped_column(JSON, default=list)  # faixas, cordas, níveis...
     criterios: Mapped[list] = mapped_column(JSON, default=list)  # critérios de avaliação
+    contato_privacidade: Mapped[str | None] = mapped_column(String(200))  # e-mail/telefone do responsável pelos dados
     token_inscricao: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)  # link público de inscrição
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -145,3 +146,31 @@ class Documento(Base):
     arquivo: Mapped[str] = mapped_column(String(200))  # caminho relativo dentro de uploads/
     tipo: Mapped[str] = mapped_column(String(80))
     tamanho: Mapped[int] = mapped_column(Integer)
+
+
+class ConsentimentoImagem(Base):
+    """Histórico (trilha) das autorizações e revogações de uso de imagem e voz."""
+
+    __tablename__ = "consentimentos_imagem"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    aluno_id: Mapped[int] = mapped_column(ForeignKey("alunos.id", ondelete="CASCADE"), index=True)
+    autorizado: Mapped[bool] = mapped_column(Boolean)  # True = autorizou, False = revogou/negou
+    origem: Mapped[str] = mapped_column(String(20))  # inscricao | painel
+    observacao: Mapped[str | None] = mapped_column(Text)
+    termos_versao: Mapped[str | None] = mapped_column(String(30))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AuditoriaLGPD(Base):
+    """Registra que uma eliminação/exportação ocorreu, SEM guardar dados pessoais do titular."""
+
+    __tablename__ = "auditoria_lgpd"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    academia_id: Mapped[int] = mapped_column(ForeignKey("academias.id", ondelete="CASCADE"), index=True)
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    acao: Mapped[str] = mapped_column(String(40))  # eliminacao_aluno | eliminacao_inscricao | exportacao
+    referencia: Mapped[str] = mapped_column(String(40))  # ex.: "aluno#12" (apenas o id interno)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

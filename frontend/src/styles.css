@@ -75,3 +75,8 @@ th { font-size: .8rem; color: var(--mudo); font-weight: 600; } tr:last-child td 
 @media (max-width: 760px) { .alternar { flex-wrap: wrap; justify-content: flex-end; } .lista li { flex-wrap: wrap; } }
 
 .clausula { max-height: 190px; overflow-y: auto; border: 1px solid var(--borda); border-radius: 8px; padding: .5rem .85rem; margin-bottom: .75rem; font-size: .9rem; background: var(--bg); } .clausula p { margin: .5rem 0; }
+
+.politica h2 { margin-top: 1.1rem; } .politica h2:first-child { margin-top: 0; } .politica ul { padding-left: 1.2rem; }
+.rodape-lgpd { margin-top: 1.5rem; text-align: center; font-size: .85rem; color: var(--mudo); }
+.dias { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem; } .dias button.ativo { background: var(--cor); border-color: var(--cor); color: #fff; }
+.zona-perigo { border-color: var(--falta); }

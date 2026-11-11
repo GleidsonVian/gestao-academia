@@ -13,10 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Academia, Aluno, Documento, Inscricao, Turma, Usuario
+from ..models import Academia, Aluno, AuditoriaLGPD, ConsentimentoImagem, Documento, Inscricao, Turma, Usuario
 from ..security import usuario_atual
+from ..servicos import UPLOAD_DIR, apagar_inscricao
 
-UPLOAD_DIR = Path("uploads")
 MAX_ARQUIVOS = 5
 MAX_BYTES = 5 * 1024 * 1024
 # extensão -> (assinatura inicial do arquivo, content-type)
@@ -51,7 +51,7 @@ def _academia_por_token(db: Session, token: str) -> Academia:
 @publico.get("/{token}")
 def info(token: str, db: Session = Depends(get_db)):
     ac = _academia_por_token(db, token)
-    return {"academia": ac.nome, "modalidade": ac.modalidade}
+    return {"academia": ac.nome, "modalidade": ac.modalidade, "contato_privacidade": ac.contato_privacidade}
 
 
 @publico.post("/{token}", status_code=201)
@@ -187,6 +187,8 @@ def aprovar(insc_id: int, body: AprovarIn, u: Usuario = Depends(usuario_atual), 
     )
     db.add(aluno)
     db.flush()
+    db.add(ConsentimentoImagem(aluno_id=aluno.id, autorizado=i.autoriza_imagem, origem="inscricao",
+                               termos_versao=i.termos_versao, usuario_id=u.id))
     i.status, i.aluno_id = "aprovada", aluno.id
     db.commit()
     return {"aluno_id": aluno.id}
@@ -210,3 +212,16 @@ def baixar(insc_id: int, doc_id: int, u: Usuario = Depends(usuario_atual), db: S
     if not d or not caminho.is_file() or UPLOAD_DIR.resolve() not in caminho.parents:
         raise HTTPException(404, "Documento não encontrado")
     return FileResponse(caminho, media_type=d.tipo, filename=d.nome_original)
+
+
+@router.delete("/inscricoes/{insc_id}")
+def apagar(insc_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Elimina a ficha e os documentos enviados (ex.: inscrição recusada). Para alunos matriculados,
+    use a exclusão do aluno, que apaga tudo junto."""
+    insc = _insc(db, u, insc_id)
+    if insc.status == "aprovada":
+        raise HTTPException(409, "Inscrição aprovada: exclua os dados pelo cadastro do aluno")
+    db.add(AuditoriaLGPD(academia_id=u.academia_id, usuario_id=u.id, acao="eliminacao_inscricao", referencia=f"inscricao#{insc.id}"))
+    apagar_inscricao(db, insc)
+    db.commit()
+    return {"ok": True}

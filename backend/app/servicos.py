@@ -1,10 +1,13 @@
 """Regras de negócio compartilhadas entre rotas internas e a página pública dos pais."""
+import shutil
 from datetime import date, timedelta
+from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .models import Aluno, Aula, Avaliacao, HistoricoGraduacao, Registro
+from .models import (Aluno, AuditoriaLGPD, Aula, Avaliacao, ConsentimentoImagem, HistoricoGraduacao, Inscricao,
+                     Registro)
 
 GRADUACOES_PADRAO = {
     "capoeira": ["Cru", "Verde", "Verde e Amarela", "Amarela", "Azul", "Verde e Azul", "Marrom", "Vermelha"],
@@ -108,3 +111,30 @@ def aluno_dict(a: Aluno) -> dict:
         "link_ativo": bool(a.token_pais),
         "token_pais": a.token_pais,
     }
+
+
+# ---------------- LGPD ----------------
+UPLOAD_DIR = Path("uploads")
+
+
+def apagar_inscricao(db: Session, insc: Inscricao):
+    """Remove a ficha, os registros de documentos e os ARQUIVOS no disco."""
+    shutil.rmtree(UPLOAD_DIR / str(insc.id), ignore_errors=True)
+    db.delete(insc)
+
+
+def apagar_aluno(db: Session, aluno: Aluno, usuario_id: int):
+    """Eliminação definitiva (art. 18, VI): aluno, chamada, avaliações, histórico, consentimentos,
+    fichas de inscrição e documentos. Fica só uma linha de auditoria sem dados pessoais."""
+    for insc in db.scalars(select(Inscricao).where(Inscricao.aluno_id == aluno.id)).all():
+        apagar_inscricao(db, insc)
+    db.add(AuditoriaLGPD(academia_id=aluno.academia_id, usuario_id=usuario_id,
+                         acao="eliminacao_aluno", referencia=f"aluno#{aluno.id}"))
+    db.delete(aluno)
+
+
+def consentimentos_imagem(db: Session, aluno_id: int) -> list[dict]:
+    q = select(ConsentimentoImagem).where(ConsentimentoImagem.aluno_id == aluno_id).order_by(
+        ConsentimentoImagem.criado_em.desc(), ConsentimentoImagem.id.desc())
+    return [{"autorizado": c.autorizado, "origem": c.origem, "observacao": c.observacao,
+             "termos_versao": c.termos_versao, "em": c.criado_em} for c in db.scalars(q)]

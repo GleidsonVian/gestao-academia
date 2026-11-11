@@ -34,7 +34,7 @@ def migrar():
     insp = inspect(engine)
     novas = {
         "alunos": [("autoriza_imagem", "BOOLEAN"), ("apelido", "VARCHAR(80)")],
-        "academias": [("token_inscricao", "VARCHAR(64)")],
+        "academias": [("token_inscricao", "VARCHAR(64)"), ("contato_privacidade", "VARCHAR(200)")],
         "inscricoes": [("termos_versao", "VARCHAR(30)"), ("aceite_em", "DATETIME")],
     }
     with engine.begin() as con:

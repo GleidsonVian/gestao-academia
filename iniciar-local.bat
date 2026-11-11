@@ -41,7 +41,7 @@ echo [frontend] http://localhost:5173
 start "Frontend - Vite" /D "%~dp0frontend" cmd /k "npm run dev"
 
 timeout /t 5 /nobreak >nul
-start "" http://localhost:5173
+if /i not "%~1"=="nobrowser" start "" http://localhost:5173
 
 echo.
 echo Pronto. Para parar, feche as duas janelas (Backend e Frontend).

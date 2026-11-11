@@ -4,6 +4,8 @@ import { api, fmtData, type Aula, type Turma } from "../api";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const DIA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]; // índice 0 = segunda (igual ao back-end)
+const maisDias = (d: string, n: number) => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
 const diaSemana = (d: string) => DIA[new Date(`${d}T12:00:00`).getDay()];
 const tom = { programada: "", realizada: "ok", cancelada: "aviso" } as const;
 
@@ -14,6 +16,10 @@ export default function Calendario() {
   const [form, setForm] = useState({ data: hoje(), hora: "18:30", titulo: "Aula", turma_id: "" });
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState("");
+  const [repetir, setRepetir] = useState(false);
+  const [dias, setDias] = useState<number[]>([]);
+  const [ate, setAte] = useState(maisDias(hoje(), 90));
+  const [aviso, setAviso] = useState("");
 
   const carregar = useCallback(() => { api.get<Aula[]>("/api/aulas").then(setAulas); }, []);
   useEffect(() => { carregar(); api.get<Turma[]>("/api/turmas").then(setTurmas); }, [carregar]);
@@ -21,8 +27,18 @@ export default function Calendario() {
   async function adicionar(e: FormEvent) {
     e.preventDefault();
     setErro("");
+    setAviso("");
+    const turma_id = form.turma_id ? Number(form.turma_id) : null;
     try {
-      await api.post("/api/aulas", { ...form, turma_id: form.turma_id ? Number(form.turma_id) : null });
+      if (repetir) {
+        if (!dias.length) return setErro("Escolha ao menos um dia da semana.");
+        const r = await api.post<{ criadas: number; puladas: number }>("/api/aulas/recorrentes", {
+          dias_semana: dias, data_inicio: form.data, data_fim: ate, hora: form.hora || null, titulo: form.titulo, turma_id,
+        });
+        setAviso(`${r.criadas} aula(s) criada(s)${r.puladas ? `; ${r.puladas} já existiam e foram puladas` : ""}.`);
+      } else {
+        await api.post("/api/aulas", { ...form, turma_id });
+      }
       setAberto(false);
       carregar();
     } catch (err) {
@@ -47,6 +63,8 @@ export default function Calendario() {
       </div>
       <p className="mudo">Uma aula programada não conta na frequência. Só depois de marcada como <b>realizada</b> ela libera a chamada e entra no cálculo. Aulas canceladas ficam fora.</p>
 
+      {aviso && <p className="ok-texto">{aviso}</p>}
+
       {aberto && (
         <form className="cartao form" onSubmit={adicionar}>
           <div className="duas">
@@ -61,8 +79,20 @@ export default function Calendario() {
               </select>
             </label>
           </div>
+          <label className="check"><input type="checkbox" checked={repetir} onChange={(e) => setRepetir(e.target.checked)} /> Repetir toda semana (aulas recorrentes)</label>
+          {repetir && (
+            <>
+              <div className="dias">
+                {SEMANA.map((nome, i) => (
+                  <button type="button" key={nome} className={dias.includes(i) ? "ativo" : ""} onClick={() => setDias(dias.includes(i) ? dias.filter((x) => x !== i) : [...dias, i])}>{nome}</button>
+                ))}
+              </div>
+              <label>Repetir até<input type="date" min={form.data} max={maisDias(form.data, 366)} value={ate} onChange={(e) => setAte(e.target.value)} /></label>
+              <p className="mudo">Cria aulas programadas a partir da data escolhida, nos dias marcados, até a data final. Datas que já têm a mesma aula são puladas.</p>
+            </>
+          )}
           {erro && <p className="erro">{erro}</p>}
-          <div className="acoes"><button type="button" onClick={() => setAberto(false)}>Cancelar</button><button className="primario">Adicionar</button></div>
+          <div className="acoes"><button type="button" onClick={() => setAberto(false)}>Cancelar</button><button className="primario">{repetir ? "Criar aulas" : "Adicionar"}</button></div>
         </form>
       )}
 

@@ -48,6 +48,11 @@ export default function Inscricoes() {
     await api.post(`/api/inscricoes/${i.id}/recusar`);
     carregar();
   }
+  async function apagarDados(i: Inscricao) {
+    if (!confirm(`Apagar definitivamente a ficha de ${i.nome} e os documentos enviados? Não dá para desfazer.`)) return;
+    await api.del(`/api/inscricoes/${i.id}`);
+    carregar();
+  }
   const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(n / 1024)} KB`);
 
   return (
@@ -111,6 +116,9 @@ export default function Inscricoes() {
               <button className="primario" onClick={() => aprovar(i)}>Aprovar e matricular</button>
               <button className="perigo" onClick={() => recusar(i)}>Recusar</button>
             </div>
+          )}
+          {i.status === "recusada" && (
+            <div className="acoes"><button className="perigo" onClick={() => apagarDados(i)}>Apagar dados e documentos (LGPD)</button></div>
           )}
         </div>
       ))}

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, fmtData, linkPais, type Aluno, type Avaliacao, type Frequencia, type Historico, type Presenca } from "../api";
+import { api, baixarArquivo, fmtData, linkPais, type Aluno, type Avaliacao, type ConsentimentoImagem, type Frequencia, type Historico, type Presenca } from "../api";
 import { useAuth } from "../auth";
 import AlunoForm from "../components/AlunoForm";
 import { FrequenciaBox, ListaAvaliacoes, Medias } from "../components/Desempenho";
 
-type Detalhe = { aluno: Aluno; frequencia: Frequencia; presencas: Presenca[]; avaliacoes: Avaliacao[]; media: Record<string, number>; historico_graduacao: Historico[] };
+type Detalhe = { aluno: Aluno; frequencia: Frequencia; presencas: Presenca[]; avaliacoes: Avaliacao[]; media: Record<string, number>; historico_graduacao: Historico[]; consentimento_imagem: ConsentimentoImagem[] };
 
 export default function AlunoDetalhe() {
   const { id } = useParams();
@@ -23,6 +23,7 @@ export default function AlunoDetalhe() {
   const [notas, setNotas] = useState<Record<string, number>>({});
   const [comentario, setComentario] = useState("");
   const [visivel, setVisivel] = useState(true);
+  const [obsImagem, setObsImagem] = useState("");
   useEffect(() => setNotas(Object.fromEntries(criterios.map((c) => [c, 5]))), [criterios]);
 
   if (!d) return <p className="mudo">Carregando…</p>;
@@ -50,9 +51,27 @@ export default function AlunoDetalhe() {
     setTimeout(() => setCopiado(false), 2000);
   }
   async function excluirAluno() {
-    if (!confirm(`Excluir ${a.nome} definitivamente, com presenças e avaliações?`)) return;
+    const digitado = prompt(
+      `ELIMINAÇÃO DEFINITIVA (LGPD)
+
+Isso apaga ${a.nome}, a ficha de inscrição, os documentos enviados, a frequência, as avaliações e o histórico. Não dá para desfazer.
+
+Para confirmar, digite o nome completo do aluno:`,
+    );
+    if (digitado === null) return;
+    if (digitado.trim().toLowerCase() !== a.nome.trim().toLowerCase()) return alert("O nome não confere. Nada foi apagado.");
     await api.del(`/api/alunos/${a.id}`);
     nav("/alunos");
+  }
+  async function exportarDados() {
+    await baixarArquivo(`/api/alunos/${a.id}/exportar`, `aluno-${a.id}-dados.json`);
+  }
+  async function registrarImagem(autorizado: boolean) {
+    const msg = autorizado ? "Registrar que o responsável AUTORIZA o uso de imagem e voz?" : "Registrar a REVOGAÇÃO da autorização de uso de imagem e voz?";
+    if (!confirm(msg)) return;
+    await api.post(`/api/alunos/${a.id}/imagem`, { autorizado, observacao: obsImagem || null });
+    setObsImagem("");
+    carregar();
   }
   async function excluirAval(avId: number) {
     if (!confirm("Excluir esta avaliação?")) return;
@@ -78,7 +97,6 @@ export default function AlunoDetalhe() {
             </div>
             <div className="acoes">
               <button onClick={() => setEditando(true)}>Editar</button>
-              <button className="perigo" onClick={excluirAluno}>Excluir</button>
             </div>
           </div>
           <p>Responsável: {a.responsavel_nome ?? "—"} · {a.responsavel_telefone ?? "sem telefone"} · {a.email ?? "sem e-mail"}</p>
@@ -143,6 +161,43 @@ export default function AlunoDetalhe() {
       <div className="cartao">
         <h2>Histórico de avaliações</h2>
         {d.avaliacoes.length ? <ListaAvaliacoes itens={d.avaliacoes} onExcluir={excluirAval} /> : <p className="mudo">Nenhuma avaliação ainda.</p>}
+      </div>
+
+      <div className="cartao">
+        <h2>Uso de imagem e voz</h2>
+        <p>
+          Situação atual:{" "}
+          {a.autoriza_imagem === true ? <span className="selo ok">Autorizado</span>
+            : a.autoriza_imagem === false ? <span className="selo aviso">Não autorizado / revogado</span>
+            : <span className="selo">Sem registro</span>}
+        </p>
+        <input placeholder="Observação (opcional): ex. revogou por WhatsApp em 10/11" value={obsImagem} onChange={(e) => setObsImagem(e.target.value)} />
+        <div className="acoes">
+          <button onClick={() => registrarImagem(true)} disabled={a.autoriza_imagem === true}>Registrar autorização</button>
+          <button className="perigo" onClick={() => registrarImagem(false)} disabled={a.autoriza_imagem === false}>Registrar revogação</button>
+        </div>
+        {d.consentimento_imagem.length > 0 && (
+          <ul className="lista">
+            {d.consentimento_imagem.map((c, i) => (
+              <li key={i}>
+                <span>
+                  {c.autorizado ? "Autorizou" : "Revogou / não autorizou"}{" "}
+                  <small className="mudo">({c.origem === "inscricao" ? "na inscrição" : "registrado no painel"}{c.termos_versao ? `, texto ${c.termos_versao}` : ""}){c.observacao ? ` — ${c.observacao}` : ""}</small>
+                </span>
+                <span className="mudo">{fmtData(c.em)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="cartao zona-perigo">
+        <h2>Privacidade e dados (LGPD)</h2>
+        <p className="mudo">Direitos do titular: receber uma cópia dos dados ou pedir a eliminação definitiva.</p>
+        <div className="acoes">
+          <button onClick={exportarDados}>Exportar dados (JSON)</button>
+          <button className="perigo" onClick={excluirAluno}>Excluir todos os dados do aluno</button>
+        </div>
       </div>
     </>
   );

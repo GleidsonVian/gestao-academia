@@ -1,5 +1,5 @@
 """Calendário de aulas, chamada (presente / falta / justificada) e relatório de frequência."""
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Aluno, Aula, Registro, Turma, Usuario
-from ..schemas import AulaIn, ChamadaIn
+from ..schemas import AulaIn, AulasRecorrentesIn, ChamadaIn
 from ..security import usuario_atual
 from ..servicos import contagens_por_aluno, percentual
 
@@ -60,6 +60,37 @@ def criar(body: AulaIn, u: Usuario = Depends(usuario_atual), db: Session = Depen
     db.add(a)
     db.commit()
     return {"id": a.id}
+
+
+@router.post("/aulas/recorrentes", status_code=201)
+def criar_recorrentes(body: AulasRecorrentesIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Cria várias aulas 'programadas' de uma vez. Datas que já têm aula igual (mesma data, hora e turma) são puladas."""
+    if any(d < 0 or d > 6 for d in body.dias_semana):
+        raise HTTPException(422, "Dias da semana devem ir de 0 (segunda) a 6 (domingo)")
+    if body.data_fim < body.data_inicio:
+        raise HTTPException(422, "A data final deve ser depois da inicial")
+    if (body.data_fim - body.data_inicio).days > 366:
+        raise HTTPException(422, "O período pode ter no máximo 1 ano")
+    _valida_turma(db, u, body.turma_id)
+
+    existentes = {
+        (a.data, a.hora, a.turma_id)
+        for a in db.scalars(select(Aula).where(
+            Aula.academia_id == u.academia_id, Aula.data >= body.data_inicio, Aula.data <= body.data_fim))
+    }
+    dias, criadas, puladas = set(body.dias_semana), 0, 0
+    dia = body.data_inicio
+    while dia <= body.data_fim:
+        if dia.weekday() in dias:
+            if (dia, body.hora, body.turma_id) in existentes:
+                puladas += 1
+            else:
+                db.add(Aula(academia_id=u.academia_id, data=dia, hora=body.hora, titulo=body.titulo.strip(),
+                            turma_id=body.turma_id, status="programada"))
+                criadas += 1
+        dia += timedelta(days=1)
+    db.commit()
+    return {"criadas": criadas, "puladas": puladas}
 
 
 @router.put("/aulas/{aula_id}")

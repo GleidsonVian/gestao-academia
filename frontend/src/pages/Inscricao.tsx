@@ -6,7 +6,7 @@ import { CLAUSULA_IMAGEM, CLAUSULA_SAUDE, TERMOS_VERSAO } from "../termos";
 /** Formulário público: o responsável preenche a ficha de inscrição pelo link do professor. */
 export default function Inscricao() {
   const { token } = useParams();
-  const [info, setInfo] = useState<{ academia: string; modalidade: string } | null>(null);
+  const [info, setInfo] = useState<{ academia: string; modalidade: string; contato_privacidade: string | null } | null>(null);
   const [indisponivel, setIndisponivel] = useState(false);
   const [f, setF] = useState({
     nome: "", nascimento: "", responsavel_nome: "", responsavel_telefone: "", email: "", observacoes: "",
@@ -19,7 +19,7 @@ export default function Inscricao() {
   const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
-    api.publico<{ academia: string; modalidade: string }>(`/inscricao/${token}`).then(setInfo).catch(() => setIndisponivel(true));
+    api.publico<{ academia: string; modalidade: string; contato_privacidade: string | null }>(`/inscricao/${token}`).then(setInfo).catch(() => setIndisponivel(true));
   }, [token]);
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<any>) => setF({ ...f, [k]: e.target.value });
@@ -103,6 +103,12 @@ export default function Inscricao() {
         </div>
 
         {erro && <p className="erro">{erro}</p>}
+        <p className="mudo">
+          Seus dados serão usados apenas para a matrícula e o acompanhamento do aluno. Leia a{" "}
+          <a href="/privacidade" target="_blank" rel="noreferrer">política de privacidade</a>.
+          Você pode pedir acesso, correção ou eliminação dos dados a qualquer momento
+          {info.contato_privacidade ? <>, pelo contato: <b>{info.contato_privacidade}</b></> : <>, falando com a academia</>}.
+        </p>
         <button className="primario" disabled={enviando}>{enviando ? "Enviando…" : "Enviar inscrição"}</button>
       </form>
     </div>

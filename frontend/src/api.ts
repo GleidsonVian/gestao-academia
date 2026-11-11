@@ -44,6 +44,16 @@ export async function enviarInscricao(tk: string, dados: FormData): Promise<void
   }
 }
 
+/** Baixa um arquivo protegido (precisa do JWT) e salva com o nome indicado. */
+export async function baixarArquivo(path: string, nome: string) {
+  const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${token.get()}` } });
+  if (!res.ok) throw new ApiError(res.status, "Não foi possível baixar");
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = nome; a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Baixa um arquivo protegido (precisa do JWT) e abre numa nova aba. */
 export async function abrirDocumento(path: string) {
   const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${token.get()}` } });
@@ -64,7 +74,8 @@ export const api = {
 };
 
 // ---------- tipos ----------
-export type Academia = { id: number; nome: string; modalidade: string; graduacoes: string[]; criterios: string[] };
+export type Academia = { id: number; nome: string; modalidade: string; graduacoes: string[]; criterios: string[]; contato_privacidade: string | null };
+export type ConsentimentoImagem = { autorizado: boolean; origem: "inscricao" | "painel"; observacao: string | null; termos_versao: string | null; em: string };
 export type Me = { usuario: { id: number; nome: string; email: string }; academia: Academia };
 export type Turma = { id: number; nome: string; horario: string | null; alunos: number };
 export type Aluno = {

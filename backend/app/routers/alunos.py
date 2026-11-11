@@ -7,11 +7,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Aluno, Avaliacao, HistoricoGraduacao, Turma, Usuario
-from ..schemas import AlunoIn, AvaliacaoIn
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+
+from ..models import (Aluno, AuditoriaLGPD, Aula, Avaliacao, ConsentimentoImagem, HistoricoGraduacao, Inscricao, Registro,
+                      Turma, Usuario)
+from ..schemas import AlunoIn, AvaliacaoIn, ImagemIn
 from ..security import usuario_atual
-from ..servicos import (aluno_dict, avaliacoes_do_aluno, frequencia, historico_graduacao, media_por_criterio,
-                        registrar_graduacao, ultimas_presencas)
+from ..servicos import (aluno_dict, apagar_aluno, avaliacoes_do_aluno, consentimentos_imagem, frequencia,
+                        historico_graduacao, media_por_criterio, registrar_graduacao, ultimas_presencas)
 
 router = APIRouter(prefix="/api", tags=["alunos"], dependencies=[Depends(usuario_atual)])
 
@@ -73,6 +77,7 @@ def detalhe(aluno_id: int, u: Usuario = Depends(usuario_atual), db: Session = De
         "frequencia": frequencia(db, a.id),
         "presencas": ultimas_presencas(db, a.id, 30),
         "historico_graduacao": historico_graduacao(db, a.id),
+        "consentimento_imagem": consentimentos_imagem(db, a.id),
         "avaliacoes": avals,
         "media": media_por_criterio(avals),
     }
@@ -91,7 +96,49 @@ def editar(aluno_id: int, body: AlunoIn, u: Usuario = Depends(usuario_atual), db
 
 @router.delete("/alunos/{aluno_id}")
 def excluir(aluno_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    db.delete(_aluno(db, u, aluno_id))
+    """Eliminação definitiva e irreversível de todos os dados do aluno (LGPD, art. 18, VI)."""
+    apagar_aluno(db, _aluno(db, u, aluno_id), u.id)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/alunos/{aluno_id}/exportar")
+def exportar(aluno_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Cópia de todos os dados do aluno em JSON (LGPD, art. 18, II e V)."""
+    a = _aluno(db, u, aluno_id)
+    dados = {
+        "gerado_em": date.today(),
+        "aluno": {k: v for k, v in aluno_dict(a).items() if k not in ("token_pais", "link_ativo")},
+        "frequencia": frequencia(db, a.id),
+        "presencas": [
+            {"data": d, "status": st, "aula_status": ast}
+            for d, st, ast in db.execute(
+                select(Aula.data, Registro.status, Aula.status).join(Registro, Registro.aula_id == Aula.id)
+                .where(Registro.aluno_id == a.id).order_by(Aula.data))
+        ],
+        "avaliacoes": avaliacoes_do_aluno(db, a.id),
+        "historico_graduacao": historico_graduacao(db, a.id),
+        "consentimento_imagem": consentimentos_imagem(db, a.id),
+        "fichas_inscricao": [
+            {"enviada_em": i.criado_em, "responsavel": i.responsavel_nome, "telefone": i.responsavel_telefone,
+             "email": i.email, "saude": i.observacoes, "autoriza_imagem": i.autoriza_imagem,
+             "termos_versao": i.termos_versao, "aceite_em": i.aceite_em,
+             "documentos": [d.nome_original for d in i.documentos]}
+            for i in db.scalars(select(Inscricao).where(Inscricao.aluno_id == a.id))
+        ],
+    }
+    db.add(AuditoriaLGPD(academia_id=u.academia_id, usuario_id=u.id, acao="exportacao", referencia=f"aluno#{a.id}"))
+    db.commit()
+    return JSONResponse(jsonable_encoder(dados), headers={"Content-Disposition": f'attachment; filename="aluno-{a.id}-dados.json"'})
+
+
+@router.post("/alunos/{aluno_id}/imagem")
+def registrar_imagem(aluno_id: int, body: ImagemIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Registra autorização ou REVOGAÇÃO do uso de imagem e voz, mantendo o histórico."""
+    a = _aluno(db, u, aluno_id)
+    a.autoriza_imagem = body.autorizado
+    db.add(ConsentimentoImagem(aluno_id=a.id, autorizado=body.autorizado, origem="painel",
+                               observacao=(body.observacao or "").strip() or None, usuario_id=u.id))
     db.commit()
     return {"ok": True}
 
