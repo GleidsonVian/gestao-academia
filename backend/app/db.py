@@ -19,7 +19,8 @@ EH_SQLITE = DATABASE_URL.startswith("sqlite")
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if EH_SQLITE else {},
+    # psycopg 3 + endpoint "pooled" do Neon (PgBouncer): sem prepared statements para não quebrar entre conexões
+    connect_args={"check_same_thread": False} if EH_SQLITE else {"prepare_threshold": None},
     pool_pre_ping=True,  # Neon suspende o banco quando ocioso: testa a conexão antes de usar
     pool_recycle=300,
 )

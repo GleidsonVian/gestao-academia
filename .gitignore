@@ -16,3 +16,8 @@ dist/
 .vscode/
 .idea/
 *.log
+
+# segredos do Neon e variantes locais
+.env.*
+!.env.example
+.neon
