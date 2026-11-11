@@ -45,6 +45,25 @@ export async function enviarInscricao(tk: string, dados: FormData): Promise<void
   }
 }
 
+/** Busca uma imagem protegida (precisa do JWT) e devolve uma URL local para usar em img ou CSS. */
+export async function urlDeImagemProtegida(path: string): Promise<string | null> {
+  const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${token.get()}` } });
+  if (!res.ok) return null;
+  return URL.createObjectURL(await res.blob());
+}
+/** URL publica (sem login) de uma imagem servida pela API. */
+export const urlPublica = (path: string) => `${BASE}${path}`;
+
+/** Envia um arquivo (multipart) para uma rota protegida. */
+export async function enviarArquivo(path: string, arquivo: File, campo = "arquivo") {
+  const fd = new FormData();
+  fd.append(campo, arquivo);
+  const res = await fetch(BASE + path, { method: "POST", headers: { Authorization: `Bearer ${token.get()}` }, body: fd });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, typeof data.detail === "string" ? data.detail : "Não foi possível enviar o arquivo");
+  return data;
+}
+
 /** Baixa um arquivo protegido (precisa do JWT) e salva com o nome indicado. */
 export async function baixarArquivo(path: string, nome: string) {
   const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${token.get()}` } });
@@ -81,11 +100,24 @@ export type Assinatura = {
   status: "teste" | "ativa" | "suspensa" | "cancelada"; estado: "teste" | "ativa" | "tolerancia" | "vencida" | "suspensa" | "cancelada";
   acesso_ate: string | null; dias_restantes: number | null; bloqueada: boolean; tolerancia_dias: number; contato: string;
 };
-export type Me = { usuario: { id: number; nome: string; email: string; is_superadmin: boolean }; assinatura: Assinatura; academia: Academia };
+export type Aparencia = { cor_primaria: string | null; tem_logo: boolean; logo_versao: number; logo_opacidade: number };
+export type Me = { usuario: { id: number; nome: string; email: string; is_superadmin: boolean }; assinatura: Assinatura; academia: Academia; aparencia: Aparencia };
 export type AcademiaAdmin = {
   id: number; nome: string; modalidade: string; criada_em: string; email_dono: string | null; alunos: number; usuarios: number;
   status: Assinatura["status"]; acesso_ate: string | null; estado: Assinatura["estado"]; bloqueada: boolean; dias_restantes: number | null;
+  valor_mensal_centavos: number | null; total_pago_centavos: number; ultimo_pagamento: string | null;
 };
+export type PagamentoAdmin = {
+  id: number; academia_id: number; academia: string | null; valor_centavos: number; forma: string; data_pagamento: string;
+  dias_concedidos: number; observacao: string | null; estornado: boolean; comprovante: { nome: string; tamanho: number } | null;
+};
+export type Receita = {
+  mes_atual: number; mes_anterior: number; total_geral: number; serie: { mes: string; total_centavos: number }[];
+  mrr_centavos: number; pagantes: number; sem_valor_definido: number; ticket_medio_centavos: number;
+  a_vencer_7d: { academias: number; valor_centavos: number }; em_atraso: { academias: number; valor_centavos: number };
+  em_teste: number; testes_expirados: number;
+};
+export const brl = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export type Turma = { id: number; nome: string; horario: string | null; alunos: number };
 export type Aluno = {
   id: number; nome: string; apelido: string | null; nascimento: string | null; turma_id: number | null; turma: string | null;

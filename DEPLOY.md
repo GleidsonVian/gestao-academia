@@ -63,6 +63,14 @@ Ao entrar, aparece o menu **Admin** (`/admin`): lista das academias com situaç�
 
 Use uma senha forte e única na conta de superadmin: ela controla todas as academias.
 
+### Pagamentos e receita
+
+No **Admin**, o botão **Registrar pagamento** grava valor, forma (Pix, boleto, cartão...), data, dias concedidos e observação, e pode anexar o **comprovante** (PDF, JPG ou PNG de até 5 MB, guardado no banco). Ele estende o acesso a partir do vencimento atual; desmarque *Estender o acesso* para só registrar um pagamento antigo. A aba **Pagamentos** lista o histórico (filtro por academia e mês, exportar CSV, estornar, trocar comprovante). Defina a **mensalidade** de cada academia em *Editar* para a receita prevista (MRR) ficar correta. Os registros ficam na tabela `pagamentos` do Neon.
+
+### Aparência (cada academia)
+
+Em **Configurações → Aparência**, a academia escolhe a cor do app e envia o logo (PNG, JPG ou WEBP de até 1 MB; imagens maiores são reduzidas no navegador). O logo aparece de fundo no painel, na página dos pais e na ficha de inscrição. SVG não é aceito, por segurança.
+
 ### Variáveis opcionais (API, em Environment)
 
 | Variável | Padrão | Para quê |

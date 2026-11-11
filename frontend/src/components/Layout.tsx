@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { urlDeImagemProtegida } from "../api";
 import { useAuth } from "../auth";
+import { useTema } from "../tema";
 import Bloqueado from "../pages/Bloqueado";
 import FaixaAssinatura from "./FaixaAssinatura";
 
@@ -17,6 +19,7 @@ const itens = [
 export default function Layout() {
   const { me, sair } = useAuth();
   const bloqueada = me!.assinatura.bloqueada;
+  useTema(me!.aparencia, () => urlDeImagemProtegida("/api/academia/logo"));
   return (
     <div className="app">
       <aside className="menu">

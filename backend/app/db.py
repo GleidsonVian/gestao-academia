@@ -47,8 +47,14 @@ def migrar():
     novas = {
         "alunos": [("autoriza_imagem", "BOOLEAN"), ("apelido", "VARCHAR(80)")],
         "academias": [("token_inscricao", "VARCHAR(64)"), ("contato_privacidade", "VARCHAR(200)"),
-                      ("status_assinatura", "VARCHAR(12)"), ("acesso_ate", "DATE")],
+                      ("status_assinatura", "VARCHAR(12)"), ("acesso_ate", "DATE"),
+                      ("valor_mensal_centavos", "INTEGER"),
+                      ("cor_primaria", "VARCHAR(7)"), ("logo_tipo", "VARCHAR(80)"), ("logo_tamanho", "INTEGER"),
+                      ("logo_versao", "INTEGER DEFAULT 0"), ("logo_opacidade", "INTEGER DEFAULT 8"),
+                      ("logo_conteudo", "BLOB" if EH_SQLITE else "BYTEA")],
         "usuarios": [("is_superadmin", "BOOLEAN DEFAULT FALSE")],
+        "pagamentos": [("comprovante_nome", "VARCHAR(200)"), ("comprovante_tipo", "VARCHAR(80)"),
+                       ("comprovante_tamanho", "INTEGER"), ("comprovante_conteudo", "BLOB" if EH_SQLITE else "BYTEA")],
         "inscricoes": [("termos_versao", "VARCHAR(30)"), ("aceite_em", "TIMESTAMP")],
         "documentos": [("conteudo", "BLOB" if EH_SQLITE else "BYTEA")],
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { api, fmtData, type Avaliacao, type Frequencia, type Presenca } from "../api";
+import { urlPublica, api, fmtData, type Aparencia, type Avaliacao, type Frequencia, type Presenca } from "../api";
+import { useTema } from "../tema";
 import { FrequenciaBox, ListaAvaliacoes, Medias } from "../components/Desempenho";
 
 type Dados = {
@@ -9,6 +10,7 @@ type Dados = {
   frequencia: Frequencia;
   presencasRecentes: Presenca[];
   desempenho: { media: Record<string, number>; avaliacoes: Avaliacao[] };
+  aparencia: Aparencia;
 };
 
 /** Página pública (somente leitura) que o professor envia aos pais. */
@@ -16,6 +18,7 @@ export default function Pais() {
   const { token } = useParams();
   const [d, setD] = useState<Dados | null>(null);
   const [erro, setErro] = useState("");
+  useTema(d?.aparencia, () => urlPublica(`/publico/${token}/logo?v=${d?.aparencia.logo_versao}`));
 
   useEffect(() => {
     api.publico<Dados>(`/publico/${token}`).then(setD).catch((e) => setErro(e.message));

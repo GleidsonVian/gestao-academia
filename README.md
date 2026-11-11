@@ -18,6 +18,8 @@ App web genérico para qualquer modalidade (capoeira, kickboxing, muay thai, jiu
   A página pública não expõe telefone, e-mail nem observações internas.
 - **LGPD**: política de privacidade pública, contato do encarregado configurável, histórico de autorização/**revogação** de uso de imagem, exportação dos dados do aluno (JSON) e **eliminação definitiva** (ficha, documentos no disco, frequência e avaliações), com trilha de auditoria sem dados pessoais
 - **Assinaturas:** teste de 14 dias, tolerância de 5 dias e bloqueio automático; painel **Admin** (superadmin) para marcar pagamento, bloquear e liberar — veja [DEPLOY.md](DEPLOY.md)
+- **Financeiro (superadmin):** histórico de pagamentos com comprovante anexado, estorno, mensalidade por academia, receita do mês, receita prevista (MRR), a vencer, em atraso e gráfico dos últimos 6 meses
+- **Personalização:** cada academia escolhe a cor do app e envia o logo do grupo, que aparece de fundo no painel, na página dos pais e na ficha de inscrição
 - Graduações e critérios configuráveis por academia (padrões prontos para algumas modalidades)
 
 ## Rodar (um clique)

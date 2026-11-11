@@ -1,13 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { api, enviarInscricao } from "../api";
+import { api, enviarInscricao, urlPublica, type Aparencia } from "../api";
+import { useTema } from "../tema";
 import { CLAUSULA_IMAGEM, CLAUSULA_SAUDE, TERMOS_VERSAO } from "../termos";
 
 /** Formulário público: o responsável preenche a ficha de inscrição pelo link do professor. */
 export default function Inscricao() {
   const { token } = useParams();
-  const [info, setInfo] = useState<{ academia: string; modalidade: string; contato_privacidade: string | null } | null>(null);
+  const [info, setInfo] = useState<{ academia: string; modalidade: string; contato_privacidade: string | null; aparencia: Aparencia } | null>(null);
   const [indisponivel, setIndisponivel] = useState(false);
+  useTema(info?.aparencia, () => urlPublica(`/inscricao/${token}/logo?v=${info?.aparencia.logo_versao}`));
   const [f, setF] = useState({
     nome: "", nascimento: "", responsavel_nome: "", responsavel_telefone: "", email: "", observacoes: "",
   });
@@ -19,7 +21,7 @@ export default function Inscricao() {
   const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
-    api.publico<{ academia: string; modalidade: string; contato_privacidade: string | null }>(`/inscricao/${token}`).then(setInfo).catch(() => setIndisponivel(true));
+    api.publico<{ academia: string; modalidade: string; contato_privacidade: string | null; aparencia: Aparencia }>(`/inscricao/${token}`).then(setInfo).catch(() => setIndisponivel(true));
   }, [token]);
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<any>) => setF({ ...f, [k]: e.target.value });

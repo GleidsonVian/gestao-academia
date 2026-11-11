@@ -1,7 +1,10 @@
 """Academia (configurações), dashboard, turmas."""
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+import re
+
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from pydantic import BaseModel, Field
 from sqlalchemy import extract, func, select
 from sqlalchemy.orm import Session
 
@@ -10,7 +13,7 @@ from ..models import Aluno, Aula, Avaliacao, Inscricao, Turma, Usuario
 from ..schemas import AcademiaIn, TurmaIn
 from ..assinatura import situacao
 from ..security import usuario_atual, usuario_logado
-from ..servicos import contagens_por_aluno, percentual
+from ..servicos import LOGO_MAX_BYTES, aparencia, contagens_por_aluno, percentual, tipo_de_imagem
 
 router = APIRouter(prefix="/api", tags=["gestão"], dependencies=[Depends(usuario_atual)])
 # rotas que precisam responder mesmo com a assinatura vencida (o site usa para mostrar o aviso/bloqueio)
@@ -23,6 +26,7 @@ def me(u: Usuario = Depends(usuario_logado)):
     return {
         "usuario": {"id": u.id, "nome": u.nome, "email": u.email, "is_superadmin": bool(u.is_superadmin)},
         "assinatura": {**situacao(a), "bloqueada": False if u.is_superadmin else situacao(a)["bloqueada"]},
+        "aparencia": aparencia(a),
         "academia": {
             "id": a.id, "nome": a.nome, "modalidade": a.modalidade,
             "graduacoes": a.graduacoes, "criterios": a.criterios, "contato_privacidade": a.contato_privacidade,
@@ -115,3 +119,52 @@ def _geral(db: Session, academia_id: int) -> int | None:
     ids = list(db.scalars(select(Aluno.id).where(Aluno.academia_id == academia_id, Aluno.status.in_(["ativo", "afastado"]))))
     c = contagens_por_aluno(db, ids).values()
     return percentual(sum(x["presentes"] for x in c), sum(x["faltas"] for x in c))
+
+
+# ---------------- aparência: cor do app e logo de fundo ----------------
+class AparenciaIn(BaseModel):
+    cor_primaria: str | None = Field(default=None, pattern="^#[0-9a-fA-F]{6}$")  # None = cor padrão
+    logo_opacidade: int = Field(default=8, ge=2, le=40)
+
+
+@router.put("/academia/aparencia")
+def definir_aparencia(body: AparenciaIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    a = u.academia
+    a.cor_primaria = body.cor_primaria.lower() if body.cor_primaria else None
+    a.logo_opacidade = body.logo_opacidade
+    db.commit()
+    return aparencia(a)
+
+
+@router.post("/academia/logo")
+async def enviar_logo(arquivo: UploadFile = File(...), u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Logo do grupo: PNG, JPG ou WEBP de até 1 MB. Aparece de fundo no painel, na página dos pais e na inscrição."""
+    conteudo = await arquivo.read(LOGO_MAX_BYTES + 1)
+    if len(conteudo) > LOGO_MAX_BYTES:
+        raise HTTPException(422, "A imagem pode ter no máximo 1 MB")
+    tipo = tipo_de_imagem(conteudo)
+    if not tipo:
+        raise HTTPException(422, "Use uma imagem PNG, JPG ou WEBP")
+    a = u.academia
+    a.logo_conteudo, a.logo_tipo, a.logo_tamanho = conteudo, tipo, len(conteudo)
+    a.logo_versao = (a.logo_versao or 0) + 1
+    db.commit()
+    return aparencia(a)
+
+
+@router.delete("/academia/logo")
+def remover_logo(u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    a = u.academia
+    a.logo_conteudo, a.logo_tipo, a.logo_tamanho = None, None, None
+    a.logo_versao = (a.logo_versao or 0) + 1
+    db.commit()
+    return aparencia(a)
+
+
+@router.get("/academia/logo")
+def ver_logo(u: Usuario = Depends(usuario_atual)):
+    a = u.academia
+    if not a.logo_tamanho or a.logo_conteudo is None:
+        raise HTTPException(404, "Sem logo")
+    return Response(bytes(a.logo_conteudo), media_type=a.logo_tipo,
+                    headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600"})

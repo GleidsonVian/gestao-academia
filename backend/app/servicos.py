@@ -138,3 +138,27 @@ def consentimentos_imagem(db: Session, aluno_id: int) -> list[dict]:
         ConsentimentoImagem.criado_em.desc(), ConsentimentoImagem.id.desc())
     return [{"autorizado": c.autorizado, "origem": c.origem, "observacao": c.observacao,
              "termos_versao": c.termos_versao, "em": c.criado_em} for c in db.scalars(q)]
+
+
+# ---------------- aparência (cor e logo) ----------------
+LOGO_MAX_BYTES = 1024 * 1024
+
+
+def aparencia(a) -> dict:
+    return {
+        "cor_primaria": a.cor_primaria,
+        "tem_logo": bool(a.logo_tamanho),
+        "logo_versao": a.logo_versao or 0,
+        "logo_opacidade": 8 if a.logo_opacidade is None else a.logo_opacidade,
+    }
+
+
+def tipo_de_imagem(conteudo: bytes) -> str | None:
+    """Detecta PNG/JPG/WEBP pelo conteúdo (não confia no nome). SVG fica de fora de propósito (pode conter script)."""
+    if conteudo.startswith(bytes.fromhex("89504e47")):
+        return "image/png"
+    if conteudo.startswith(bytes.fromhex("ffd8ff")):
+        return "image/jpeg"
+    if conteudo[:4] == b"RIFF" and conteudo[8:12] == b"WEBP":
+        return "image/webp"
+    return None

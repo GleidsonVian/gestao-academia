@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
+import AparenciaForm from "../components/AparenciaForm";
 
 const paraLinhas = (l: string[]) => l.join("\n");
 const deLinhas = (t: string) => t.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -55,6 +56,8 @@ export default function Configuracoes() {
         {msg && <p className="ok-texto">{msg}</p>}
         <button className="primario">Salvar</button>
       </form>
+
+      <AparenciaForm />
     </>
   );
 }

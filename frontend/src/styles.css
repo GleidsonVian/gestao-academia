@@ -19,7 +19,7 @@ label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; c
 button, .botao { padding: .5rem .9rem; border: 1px solid var(--borda); border-radius: 8px; background: var(--card); color: var(--txt); cursor: pointer; display: inline-block; }
 button:hover, .botao:hover { border-color: var(--cor); text-decoration: none; }
 button:disabled { opacity: .5; cursor: default; }
-button.primario { background: var(--cor); border-color: var(--cor); color: #fff; } button.primario:hover { background: var(--cor-esc); }
+button.primario { background: var(--cor); border-color: var(--cor); color: var(--cor-texto, #fff); } button.primario:hover { background: var(--cor-esc); }
 button.perigo { color: var(--falta); }
 button.link { border: 0; background: none; padding: 0; color: var(--cor); }
 
@@ -28,7 +28,7 @@ button.link { border: 0; background: none; padding: 0; color: var(--cor); }
 .marca { display: flex; flex-direction: column; } .marca small { color: var(--mudo); }
 .menu nav { display: flex; flex-direction: column; gap: .15rem; flex: 1; }
 .menu nav a { padding: .5rem .75rem; border-radius: 8px; color: var(--txt); }
-.menu nav a.active { background: var(--cor); color: #fff; } .menu nav a:hover { text-decoration: none; background: var(--bg); } .menu nav a.active:hover { background: var(--cor); }
+.menu nav a.active { background: var(--cor); color: var(--cor-texto, #fff); } .menu nav a:hover { text-decoration: none; background: var(--bg); } .menu nav a.active:hover { background: var(--cor); }
 .usuario { display: flex; justify-content: space-between; align-items: center; }
 .conteudo { padding: 1.5rem; max-width: 980px; width: 100%; }
 
@@ -78,7 +78,7 @@ th { font-size: .8rem; color: var(--mudo); font-weight: 600; } tr:last-child td 
 
 .politica h2 { margin-top: 1.1rem; } .politica h2:first-child { margin-top: 0; } .politica ul { padding-left: 1.2rem; }
 .rodape-lgpd { margin-top: 1.5rem; text-align: center; font-size: .85rem; color: var(--mudo); }
-.dias { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem; } .dias button.ativo { background: var(--cor); border-color: var(--cor); color: #fff; }
+.dias { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem; } .dias button.ativo { background: var(--cor); border-color: var(--cor); color: var(--cor-texto, #fff); }
 .zona-perigo { border-color: var(--falta); }
 
 .selo.perigo { color: var(--falta); border-color: var(--falta); }
@@ -86,3 +86,17 @@ th { font-size: .8rem; color: var(--mudo); font-weight: 600; } tr:last-child td 
 .faixa.aviso { border-color: #d4a017; background: rgba(212, 160, 23, .12); } .faixa.perigo { border-color: var(--falta); }
 .bloqueio { max-width: 560px; margin: 3rem auto; text-align: center; } .bloqueio .acoes { justify-content: center; }
 .tabela-admin td, .tabela-admin th { white-space: nowrap; } .tabela-admin .editar { background: var(--bg); }
+
+.barras-mes { display: flex; gap: .75rem; align-items: flex-end; height: 170px; } .barra-mes { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .25rem; height: 100%; text-align: center; }
+.barra-mes .coluna { width: 100%; max-width: 70px; flex: 1; display: flex; align-items: flex-end; background: var(--bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--borda); } .barra-mes .coluna > div { width: 100%; background: var(--cor); }
+.barra-mes small { font-size: .72rem; white-space: nowrap; }
+
+/* personalizacao: logo de fundo (marca dagua) e logo na barra lateral */
+body.com-logo::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: var(--logo-opacidade, .08);
+  background: var(--logo-url) center / min(70vmin, 560px) no-repeat; }
+body.com-logo .app, body.com-logo .pais { position: relative; z-index: 1; }
+body.com-logo .cartao { background: color-mix(in srgb, var(--card) 90%, transparent); }
+.marca-logo { width: 100%; max-height: 72px; object-fit: contain; object-position: left; margin-bottom: .4rem; }
+.previa-logo { max-width: 160px; max-height: 120px; object-fit: contain; border: 1px solid var(--borda); border-radius: 8px; padding: .4rem; background: var(--bg); }
+.cores { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-bottom: .75rem; } .cores .amostra { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--borda); padding: 0; cursor: pointer; }
+.cores input[type=color] { width: 44px; height: 34px; padding: 2px; }

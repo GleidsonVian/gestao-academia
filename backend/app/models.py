@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 
 from .db import Base
 
@@ -17,6 +17,14 @@ class Academia(Base):
     criterios: Mapped[list] = mapped_column(JSON, default=list)  # critérios de avaliação
     status_assinatura: Mapped[str] = mapped_column(String(12), default="teste")  # teste | ativa | suspensa | cancelada
     acesso_ate: Mapped[date | None] = mapped_column(Date)  # último dia de acesso (inclusive)
+    valor_mensal_centavos: Mapped[int | None] = mapped_column(Integer)  # mensalidade combinada (base da receita prevista)
+    # aparência (personalização da academia)
+    cor_primaria: Mapped[str | None] = mapped_column(String(7))  # "#rrggbb"
+    logo_tipo: Mapped[str | None] = mapped_column(String(80))
+    logo_tamanho: Mapped[int | None] = mapped_column(Integer)
+    logo_versao: Mapped[int] = mapped_column(Integer, default=0)  # muda a cada troca (evita cache velho)
+    logo_opacidade: Mapped[int] = mapped_column(Integer, default=8)  # % de visibilidade da marca d'água de fundo
+    logo_conteudo: Mapped[bytes | None] = deferred(mapped_column(LargeBinary))
     contato_privacidade: Mapped[str | None] = mapped_column(String(200))  # e-mail/telefone do responsável pelos dados
     token_inscricao: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)  # link público de inscrição
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -190,4 +198,26 @@ class AuditoriaAdmin(Base):
     academia_id: Mapped[int] = mapped_column(Integer, index=True)
     acao: Mapped[str] = mapped_column(String(40))
     detalhe: Mapped[str | None] = mapped_column(String(300))
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Pagamento(Base):
+    """Histórico financeiro por academia (cobrança feita pelo dono do sistema). Valores em centavos."""
+
+    __tablename__ = "pagamentos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    academia_id: Mapped[int] = mapped_column(ForeignKey("academias.id", ondelete="CASCADE"), index=True)
+    valor_centavos: Mapped[int] = mapped_column(Integer)
+    forma: Mapped[str] = mapped_column(String(20))  # pix | boleto | cartao | transferencia | dinheiro | cortesia | outro
+    data_pagamento: Mapped[date] = mapped_column(Date, index=True)
+    dias_concedidos: Mapped[int] = mapped_column(Integer)
+    observacao: Mapped[str | None] = mapped_column(String(300))
+    estornado: Mapped[bool] = mapped_column(Boolean, default=False)
+    estornado_em: Mapped[datetime | None] = mapped_column(DateTime)
+    comprovante_nome: Mapped[str | None] = mapped_column(String(200))
+    comprovante_tipo: Mapped[str | None] = mapped_column(String(80))
+    comprovante_tamanho: Mapped[int | None] = mapped_column(Integer)
+    comprovante_conteudo: Mapped[bytes | None] = deferred(mapped_column(LargeBinary))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

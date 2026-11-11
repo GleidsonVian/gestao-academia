@@ -15,7 +15,7 @@ from ..db import get_db
 from ..models import Academia, Aluno, AuditoriaLGPD, ConsentimentoImagem, Documento, Inscricao, Turma, Usuario
 from ..assinatura import situacao
 from ..security import usuario_atual
-from ..servicos import UPLOAD_DIR, apagar_inscricao
+from ..servicos import UPLOAD_DIR, aparencia, apagar_inscricao
 
 MAX_ARQUIVOS = 5
 MAX_BYTES = 5 * 1024 * 1024
@@ -53,7 +53,17 @@ def _academia_por_token(db: Session, token: str) -> Academia:
 @publico.get("/{token}")
 def info(token: str, db: Session = Depends(get_db)):
     ac = _academia_por_token(db, token)
-    return {"academia": ac.nome, "modalidade": ac.modalidade, "contato_privacidade": ac.contato_privacidade}
+    return {"academia": ac.nome, "modalidade": ac.modalidade, "contato_privacidade": ac.contato_privacidade,
+            "aparencia": aparencia(ac)}
+
+
+@publico.get("/{token}/logo")
+def logo_inscricao(token: str, db: Session = Depends(get_db)):
+    ac = _academia_por_token(db, token)
+    if not ac.logo_tamanho or ac.logo_conteudo is None:
+        raise HTTPException(404, "Sem logo")
+    return Response(bytes(ac.logo_conteudo), media_type=ac.logo_tipo,
+                    headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "public, max-age=3600"})
 
 
 @publico.post("/{token}", status_code=201)
