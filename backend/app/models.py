@@ -15,6 +15,8 @@ class Academia(Base):
     # listas configuráveis: funciona para qualquer modalidade
     graduacoes: Mapped[list] = mapped_column(JSON, default=list)  # faixas, cordas, níveis...
     criterios: Mapped[list] = mapped_column(JSON, default=list)  # critérios de avaliação
+    status_assinatura: Mapped[str] = mapped_column(String(12), default="teste")  # teste | ativa | suspensa | cancelada
+    acesso_ate: Mapped[date | None] = mapped_column(Date)  # último dia de acesso (inclusive)
     contato_privacidade: Mapped[str | None] = mapped_column(String(200))  # e-mail/telefone do responsável pelos dados
     token_inscricao: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)  # link público de inscrição
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -28,6 +30,7 @@ class Usuario(Base):
     nome: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     senha_hash: Mapped[str] = mapped_column(String(200))
+    is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)  # só o dono do sistema
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     academia: Mapped[Academia] = relationship()
@@ -174,4 +177,17 @@ class AuditoriaLGPD(Base):
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
     acao: Mapped[str] = mapped_column(String(40))  # eliminacao_aluno | eliminacao_inscricao | exportacao
     referencia: Mapped[str] = mapped_column(String(40))  # ex.: "aluno#12" (apenas o id interno)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AuditoriaAdmin(Base):
+    """Quem (superadmin) mudou a assinatura de qual academia, e quando."""
+
+    __tablename__ = "auditoria_admin"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    academia_id: Mapped[int] = mapped_column(Integer, index=True)
+    acao: Mapped[str] = mapped_column(String(40))
+    detalhe: Mapped[str | None] = mapped_column(String(300))
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

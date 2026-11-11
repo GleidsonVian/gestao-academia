@@ -16,6 +16,7 @@ import Pais from "./pages/Pais";
 import Inscricao from "./pages/Inscricao";
 import Inscricoes from "./pages/Inscricoes";
 import Privacidade from "./pages/Privacidade";
+import Admin from "./pages/Admin";
 import "./styles.css";
 
 function Protegido() {
@@ -43,6 +44,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="relatorios" element={<Relatorios />} />
             <Route path="turmas" element={<Turmas />} />
             <Route path="configuracoes" element={<Configuracoes />} />
+            <Route path="admin" element={<Admin />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

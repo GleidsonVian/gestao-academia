@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Academia, Aluno, AuditoriaLGPD, ConsentimentoImagem, Documento, Inscricao, Turma, Usuario
+from ..assinatura import situacao
 from ..security import usuario_atual
 from ..servicos import UPLOAD_DIR, apagar_inscricao
 
@@ -44,6 +45,8 @@ def _academia_por_token(db: Session, token: str) -> Academia:
     ac = db.scalar(select(Academia).where(Academia.token_inscricao == token))
     if not ac:
         raise HTTPException(404, "Link de inscrição inválido ou desativado")
+    if situacao(ac)["bloqueada"]:
+        raise HTTPException(403, "Inscrições indisponíveis no momento")
     return ac
 
 

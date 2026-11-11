@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..assinatura import situacao
 from ..models import Academia, Aluno
 from ..servicos import avaliacoes_do_aluno, frequencia, media_por_criterio, ultimas_presencas
 
@@ -16,6 +17,8 @@ def acompanhamento(token: str, db: Session = Depends(get_db)):
     if not a:
         raise HTTPException(404, "Link inválido ou desativado")
     ac = db.get(Academia, a.academia_id)
+    if situacao(ac)["bloqueada"]:
+        raise HTTPException(403, "Página indisponível no momento")
     avals = avaliacoes_do_aluno(db, a.id, so_visiveis=True)
     # nada de telefone, e-mail ou observações internas aqui
     return {

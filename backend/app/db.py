@@ -46,7 +46,9 @@ def migrar():
     insp = inspect(engine)
     novas = {
         "alunos": [("autoriza_imagem", "BOOLEAN"), ("apelido", "VARCHAR(80)")],
-        "academias": [("token_inscricao", "VARCHAR(64)"), ("contato_privacidade", "VARCHAR(200)")],
+        "academias": [("token_inscricao", "VARCHAR(64)"), ("contato_privacidade", "VARCHAR(200)"),
+                      ("status_assinatura", "VARCHAR(12)"), ("acesso_ate", "DATE")],
+        "usuarios": [("is_superadmin", "BOOLEAN DEFAULT FALSE")],
         "inscricoes": [("termos_versao", "VARCHAR(30)"), ("aceite_em", "TIMESTAMP")],
         "documentos": [("conteudo", "BLOB" if EH_SQLITE else "BYTEA")],
     }
@@ -57,6 +59,12 @@ def migrar():
                 if nome not in existentes:
                     con.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {nome} {tipo}"))
         con.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_academias_token_inscricao ON academias (token_inscricao)"))
+
+        # academias criadas antes do controle de assinatura ganham o período de teste a partir de hoje
+        from datetime import date, timedelta
+        from .assinatura import TESTE_DIAS
+        con.execute(text("UPDATE academias SET status_assinatura = 'teste', acesso_ate = :d WHERE status_assinatura IS NULL"),
+                    {"d": date.today() + timedelta(days=TESTE_DIAS)})
 
         # presencas (antigo: presente/faltou por data) -> aulas + registros_chamada (3 estados)
         if "presencas" in insp.get_table_names():

@@ -13,11 +13,13 @@ from fastapi.responses import JSONResponse
 from ..models import (Aluno, AuditoriaLGPD, Aula, Avaliacao, ConsentimentoImagem, HistoricoGraduacao, Inscricao, Registro,
                       Turma, Usuario)
 from ..schemas import AlunoIn, AvaliacaoIn, ImagemIn
-from ..security import usuario_atual
+from ..security import usuario_atual, usuario_logado
 from ..servicos import (aluno_dict, apagar_aluno, avaliacoes_do_aluno, consentimentos_imagem, frequencia,
                         historico_graduacao, media_por_criterio, registrar_graduacao, ultimas_presencas)
 
 router = APIRouter(prefix="/api", tags=["alunos"], dependencies=[Depends(usuario_atual)])
+# LGPD: o titular pode pedir cópia/eliminação dos dados MESMO com a assinatura vencida
+lgpd = APIRouter(prefix="/api", tags=["LGPD"], dependencies=[Depends(usuario_logado)])
 
 
 def _aluno(db: Session, u: Usuario, aluno_id: int) -> Aluno:
@@ -94,19 +96,16 @@ def editar(aluno_id: int, body: AlunoIn, u: Usuario = Depends(usuario_atual), db
     return {"ok": True}
 
 
-@router.delete("/alunos/{aluno_id}")
-def excluir(aluno_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+@lgpd.delete("/alunos/{aluno_id}")
+def excluir(aluno_id: int, u: Usuario = Depends(usuario_logado), db: Session = Depends(get_db)):
     """Eliminação definitiva e irreversível de todos os dados do aluno (LGPD, art. 18, VI)."""
     apagar_aluno(db, _aluno(db, u, aluno_id), u.id)
     db.commit()
     return {"ok": True}
 
 
-@router.get("/alunos/{aluno_id}/exportar")
-def exportar(aluno_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    """Cópia de todos os dados do aluno em JSON (LGPD, art. 18, II e V)."""
-    a = _aluno(db, u, aluno_id)
-    dados = {
+def _dados_aluno(db: Session, a: Aluno) -> dict:
+    return {
         "gerado_em": date.today(),
         "aluno": {k: v for k, v in aluno_dict(a).items() if k not in ("token_pais", "link_ativo")},
         "frequencia": frequencia(db, a.id),
@@ -127,9 +126,26 @@ def exportar(aluno_id: int, u: Usuario = Depends(usuario_atual), db: Session = D
             for i in db.scalars(select(Inscricao).where(Inscricao.aluno_id == a.id))
         ],
     }
+
+
+@lgpd.get("/alunos/{aluno_id}/exportar")
+def exportar(aluno_id: int, u: Usuario = Depends(usuario_logado), db: Session = Depends(get_db)):
+    """Cópia de todos os dados do aluno em JSON (LGPD, art. 18, II e V)."""
+    a = _aluno(db, u, aluno_id)
+    dados = _dados_aluno(db, a)
     db.add(AuditoriaLGPD(academia_id=u.academia_id, usuario_id=u.id, acao="exportacao", referencia=f"aluno#{a.id}"))
     db.commit()
     return JSONResponse(jsonable_encoder(dados), headers={"Content-Disposition": f'attachment; filename="aluno-{a.id}-dados.json"'})
+
+
+@lgpd.get("/minha-academia/exportar")
+def exportar_academia(u: Usuario = Depends(usuario_logado), db: Session = Depends(get_db)):
+    """Cópia de TODOS os dados da academia (todos os alunos), disponível mesmo com a assinatura bloqueada."""
+    alunos = db.scalars(select(Aluno).where(Aluno.academia_id == u.academia_id).order_by(Aluno.nome)).all()
+    dados = {"gerado_em": date.today(), "academia": u.academia.nome, "alunos": [_dados_aluno(db, a) for a in alunos]}
+    db.add(AuditoriaLGPD(academia_id=u.academia_id, usuario_id=u.id, acao="exportacao", referencia="academia"))
+    db.commit()
+    return JSONResponse(jsonable_encoder(dados), headers={"Content-Disposition": 'attachment; filename="academia-dados.json"'})
 
 
 @router.post("/alunos/{aluno_id}/imagem")

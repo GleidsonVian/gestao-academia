@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Academia, Usuario
+from datetime import date, timedelta
+
+from ..assinatura import TESTE_DIAS
 from ..schemas import LoginIn, RegistrarIn, TokenOut
 from ..security import confere_senha, criar_token, hash_senha, usuario_atual
 from ..servicos import CRITERIOS_PADRAO, GRADUACOES_GENERICAS, GRADUACOES_PADRAO
@@ -26,6 +29,8 @@ def registrar(body: RegistrarIn, db: Session = Depends(get_db)):
         modalidade=body.modalidade.strip(),
         graduacoes=GRADUACOES_PADRAO.get(body.modalidade.strip().lower(), GRADUACOES_GENERICAS),
         criterios=CRITERIOS_PADRAO,
+        status_assinatura="teste",
+        acesso_ate=date.today() + timedelta(days=TESTE_DIAS),
     )
     usuario = Usuario(academia=academia, nome=body.nome.strip(), email=email, senha_hash=hash_senha(body.senha))
     db.add_all([academia, usuario])

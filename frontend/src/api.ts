@@ -25,6 +25,7 @@ async function req<T>(method: string, path: string, body?: unknown, auth = true)
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 402 && auth) window.dispatchEvent(new Event("assinatura:bloqueada"));
     if (res.status === 401 && auth) {
       token.clear();
       window.dispatchEvent(new Event("auth:logout"));
@@ -76,7 +77,15 @@ export const api = {
 // ---------- tipos ----------
 export type Academia = { id: number; nome: string; modalidade: string; graduacoes: string[]; criterios: string[]; contato_privacidade: string | null };
 export type ConsentimentoImagem = { autorizado: boolean; origem: "inscricao" | "painel"; observacao: string | null; termos_versao: string | null; em: string };
-export type Me = { usuario: { id: number; nome: string; email: string }; academia: Academia };
+export type Assinatura = {
+  status: "teste" | "ativa" | "suspensa" | "cancelada"; estado: "teste" | "ativa" | "tolerancia" | "vencida" | "suspensa" | "cancelada";
+  acesso_ate: string | null; dias_restantes: number | null; bloqueada: boolean; tolerancia_dias: number; contato: string;
+};
+export type Me = { usuario: { id: number; nome: string; email: string; is_superadmin: boolean }; assinatura: Assinatura; academia: Academia };
+export type AcademiaAdmin = {
+  id: number; nome: string; modalidade: string; criada_em: string; email_dono: string | null; alunos: number; usuarios: number;
+  status: Assinatura["status"]; acesso_ate: string | null; estado: Assinatura["estado"]; bloqueada: boolean; dias_restantes: number | null;
+};
 export type Turma = { id: number; nome: string; horario: string | null; alunos: number };
 export type Aluno = {
   id: number; nome: string; apelido: string | null; nascimento: string | null; turma_id: number | null; turma: string | null;

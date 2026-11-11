@@ -17,6 +17,7 @@ App web genérico para qualquer modalidade (capoeira, kickboxing, muay thai, jiu
   graduação, frequência e avaliações sem login. Dá para renovar (invalida o anterior) ou desativar.
   A página pública não expõe telefone, e-mail nem observações internas.
 - **LGPD**: política de privacidade pública, contato do encarregado configurável, histórico de autorização/**revogação** de uso de imagem, exportação dos dados do aluno (JSON) e **eliminação definitiva** (ficha, documentos no disco, frequência e avaliações), com trilha de auditoria sem dados pessoais
+- **Assinaturas:** teste de 14 dias, tolerância de 5 dias e bloqueio automático; painel **Admin** (superadmin) para marcar pagamento, bloquear e liberar — veja [DEPLOY.md](DEPLOY.md)
 - Graduações e critérios configuráveis por academia (padrões prontos para algumas modalidades)
 
 ## Rodar (um clique)

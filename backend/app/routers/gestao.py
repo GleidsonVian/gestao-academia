@@ -8,17 +8,21 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Aluno, Aula, Avaliacao, Inscricao, Turma, Usuario
 from ..schemas import AcademiaIn, TurmaIn
-from ..security import usuario_atual
+from ..assinatura import situacao
+from ..security import usuario_atual, usuario_logado
 from ..servicos import contagens_por_aluno, percentual
 
 router = APIRouter(prefix="/api", tags=["gestão"], dependencies=[Depends(usuario_atual)])
+# rotas que precisam responder mesmo com a assinatura vencida (o site usa para mostrar o aviso/bloqueio)
+livre = APIRouter(prefix="/api", tags=["gestão"], dependencies=[Depends(usuario_logado)])
 
 
-@router.get("/me")
-def me(u: Usuario = Depends(usuario_atual)):
+@livre.get("/me")
+def me(u: Usuario = Depends(usuario_logado)):
     a = u.academia
     return {
-        "usuario": {"id": u.id, "nome": u.nome, "email": u.email},
+        "usuario": {"id": u.id, "nome": u.nome, "email": u.email, "is_superadmin": bool(u.is_superadmin)},
+        "assinatura": {**situacao(a), "bloqueada": False if u.is_superadmin else situacao(a)["bloqueada"]},
         "academia": {
             "id": a.id, "nome": a.nome, "modalidade": a.modalidade,
             "graduacoes": a.graduacoes, "criterios": a.criterios, "contato_privacidade": a.contato_privacidade,

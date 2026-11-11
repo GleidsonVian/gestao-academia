@@ -39,7 +39,7 @@ def criar_token(usuario: Usuario, horas: int = EXPIRA_HORAS) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
 
 
-def usuario_atual(
+def usuario_logado(
     cred: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> Usuario:
@@ -53,3 +53,19 @@ def usuario_atual(
     if not usuario:
         raise HTTPException(401, "Usuário não existe mais")
     return usuario
+
+
+def usuario_atual(u: Usuario = Depends(usuario_logado)) -> Usuario:
+    """Usuário autenticado E com assinatura em dia (teste, ativa ou tolerância). O superadmin nunca é bloqueado."""
+    if not u.is_superadmin:
+        from .assinatura import situacao
+
+        if situacao(u.academia)["bloqueada"]:
+            raise HTTPException(402, "Assinatura vencida ou suspensa")
+    return u
+
+
+def exigir_superadmin(u: Usuario = Depends(usuario_logado)) -> Usuario:
+    if not u.is_superadmin:
+        raise HTTPException(404, "Não encontrado")  # nem confirma que a rota existe
+    return u

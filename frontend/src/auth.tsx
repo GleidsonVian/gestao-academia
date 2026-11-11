@@ -30,7 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token.get()) recarregar();
     const onLogout = () => setMe(null);
     window.addEventListener("auth:logout", onLogout);
-    return () => window.removeEventListener("auth:logout", onLogout);
+    window.addEventListener("assinatura:bloqueada", recarregar);
+    return () => {
+      window.removeEventListener("auth:logout", onLogout);
+      window.removeEventListener("assinatura:bloqueada", recarregar);
+    };
   }, [recarregar]);
 
   const entrar = async (jwt: string) => {

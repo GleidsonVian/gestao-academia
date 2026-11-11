@@ -42,6 +42,35 @@ Se o Render acrescentar sufixo ao nome por já existir, use a URL real que ele m
 3. Em **Configurações**, preencha o contato de privacidade (LGPD).
 4. Teste o link de inscrição e o link dos pais pelo celular.
 
+## Assinaturas, bloqueio e painel do dono (superadmin)
+
+Cada academia tem um **status** (`teste`, `ativa`, `suspensa`, `cancelada`) e uma data **`acesso_ate`** (último dia de acesso).
+
+- **Conta nova:** nasce em teste por **14 dias** (`TESTE_DIAS`).
+- **Venceu:** entra em **tolerância de 5 dias** (`TOLERANCIA_DIAS`): tudo funciona e aparece um aviso.
+- **Passou da tolerância, suspensa ou cancelada:** o painel fica bloqueado, e os links de inscrição e dos pais ficam indisponíveis. O login continua funcionando (para ver o aviso) e a exportação dos dados continua liberada (LGPD). Nada é apagado.
+- O bloqueio é feito **na API** (rota por rota), não só na tela.
+
+### Virar superadmin (só você)
+
+Não existe tela para promover contas, de propósito. Crie a sua conta pelo site e depois, no **Neon → SQL Editor** (branch `production`), rode:
+
+```sql
+update usuarios set is_superadmin = true where email = 'SEU_EMAIL_AQUI';
+```
+
+Ao entrar, aparece o menu **Admin** (`/admin`): lista das academias com situação e vencimento, e botões **Pago +30d**, **Bloquear/Liberar** e **Editar** (status e data). O superadmin nunca é bloqueado e não vê dados de alunos. Toda mudança fica registrada na tabela `auditoria_admin`.
+
+Use uma senha forte e única na conta de superadmin: ela controla todas as academias.
+
+### Variáveis opcionais (API, em Environment)
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `TESTE_DIAS` | 14 | Dias de teste de contas novas |
+| `TOLERANCIA_DIAS` | 5 | Dias de tolerância após vencer |
+| `CONTATO_COBRANCA` | vazio | Texto exibido nos avisos (ex.: WhatsApp ou link de pagamento) |
+
 ## O que muda no plano gratuito
 
 - **A API "dorme" após ~15 min sem uso.** O primeiro acesso depois disso demora cerca de 1 minuto. Os próximos são rápidos.
