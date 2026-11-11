@@ -1,0 +1,18 @@
+# dependências e ambientes
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# segredos e dados locais (nunca versionar)
+.env
+*.db
+*.db-wal
+*.db-shm
+backend/uploads/
+
+# builds e editores
+dist/
+.vscode/
+.idea/
+*.log
