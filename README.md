@@ -57,6 +57,10 @@ uvicorn app.main:app --reload --port 3333
 cd frontend && npm install && npm run dev
 ```
 
+## Publicar na internet
+
+Render (API + site) + Neon (PostgreSQL), tudo no plano gratuito: veja **[DEPLOY.md](DEPLOY.md)** e o `render.yaml`.
+
 ## Automações (Python / n8n)
 
 Logado, chame `POST /auth/token-automacao` para obter um JWT de 1 ano e use

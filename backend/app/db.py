@@ -6,11 +6,22 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./academia.db")
+def _normaliza(url: str) -> str:
+    """Neon/Render entregam 'postgres://' ou 'postgresql://'; o SQLAlchemy precisa do driver (psycopg 3)."""
+    for prefixo in ("postgres://", "postgresql://"):
+        if url.startswith(prefixo):
+            return "postgresql+psycopg://" + url[len(prefixo):]
+    return url
+
+
+DATABASE_URL = _normaliza(os.getenv("DATABASE_URL", "sqlite:///./academia.db"))
+EH_SQLITE = DATABASE_URL.startswith("sqlite")
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+    connect_args={"check_same_thread": False} if EH_SQLITE else {},
+    pool_pre_ping=True,  # Neon suspende o banco quando ocioso: testa a conexão antes de usar
+    pool_recycle=300,
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
@@ -35,7 +46,8 @@ def migrar():
     novas = {
         "alunos": [("autoriza_imagem", "BOOLEAN"), ("apelido", "VARCHAR(80)")],
         "academias": [("token_inscricao", "VARCHAR(64)"), ("contato_privacidade", "VARCHAR(200)")],
-        "inscricoes": [("termos_versao", "VARCHAR(30)"), ("aceite_em", "DATETIME")],
+        "inscricoes": [("termos_versao", "VARCHAR(30)"), ("aceite_em", "TIMESTAMP")],
+        "documentos": [("conteudo", "BLOB" if EH_SQLITE else "BYTEA")],
     }
     with engine.begin() as con:
         for tabela, colunas in novas.items():

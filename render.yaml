@@ -1,0 +1,43 @@
+# Blueprint do Render: cria a API (Python) e o site (React estático) de uma vez.
+# O banco fica no Neon (PostgreSQL gratuito): cole a connection string em DATABASE_URL.
+# Passo a passo completo em DEPLOY.md.
+services:
+  # ---------- back-end (FastAPI) ----------
+  - type: web
+    name: gestao-academia-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # --proxy-headers: o Render fica na frente; sem isso o limite de envios do formulário enxergaria um IP só
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /saude
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATABASE_URL # connection string do Neon (postgresql://...?sslmode=require)
+        sync: false
+      - key: JWT_SECRET # gerado pelo Render
+        generateValue: true
+      - key: FRONTEND_URL # URL do site abaixo, ex.: https://gestao-academia-web.onrender.com
+        sync: false
+      - key: REGISTRO_ABERTO # depois de criar a sua conta, mude para false
+        value: "true"
+
+  # ---------- front-end (React/Vite) ----------
+  - type: web
+    name: gestao-academia-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_API_URL # URL da API acima, ex.: https://gestao-academia-api.onrender.com
+        sync: false
+    routes:
+      # rotas do React (/inscricao/xxx, /acompanhar/xxx...) precisam cair no index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

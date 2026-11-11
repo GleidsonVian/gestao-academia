@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,6 +15,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/registrar", response_model=TokenOut, status_code=201)
 def registrar(body: RegistrarIn, db: Session = Depends(get_db)):
+    # Em produção, depois de criar a sua conta, defina REGISTRO_ABERTO=false para ninguém mais criar academias.
+    if os.getenv("REGISTRO_ABERTO", "true").lower() == "false":
+        raise HTTPException(403, "Cadastro de novas academias está fechado")
     email = body.email.lower()
     if db.scalar(select(Usuario).where(Usuario.email == email)):
         raise HTTPException(409, "E-mail já cadastrado")

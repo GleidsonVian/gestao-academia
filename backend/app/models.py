@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -143,7 +143,8 @@ class Documento(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     inscricao_id: Mapped[int] = mapped_column(ForeignKey("inscricoes.id", ondelete="CASCADE"), index=True)
     nome_original: Mapped[str] = mapped_column(String(200))
-    arquivo: Mapped[str] = mapped_column(String(200))  # caminho relativo dentro de uploads/
+    arquivo: Mapped[str] = mapped_column(String(200), default="db")  # legado: caminho em uploads/; "db" = conteúdo no banco
+    conteudo: Mapped[bytes | None] = mapped_column(LargeBinary)  # o disco de hospedagens gratuitas é temporário
     tipo: Mapped[str] = mapped_column(String(80))
     tamanho: Mapped[int] = mapped_column(Integer)
 

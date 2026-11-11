@@ -1,13 +1,12 @@
 """Inscrição digital: link público para o responsável + fila de aprovação do professor."""
 import secrets
 import time
-import uuid
 from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -102,13 +101,9 @@ async def enviar(
     )
     db.add(insc)
     db.flush()
-    pasta = UPLOAD_DIR / str(insc.id)
     for f, ext, conteudo in lidos:
-        pasta.mkdir(parents=True, exist_ok=True)
-        nome_arq = f"{uuid.uuid4().hex}{ext}"  # nunca usa o nome enviado no disco
-        (pasta / nome_arq).write_bytes(conteudo)
         insc.documentos.append(Documento(
-            nome_original=Path(f.filename).name[:200], arquivo=f"{insc.id}/{nome_arq}",
+            nome_original=Path(f.filename).name[:200], arquivo="db", conteudo=conteudo,
             tipo=TIPOS[ext][1], tamanho=len(conteudo),
         ))
     db.commit()
@@ -208,8 +203,13 @@ def recusar(insc_id: int, u: Usuario = Depends(usuario_atual), db: Session = Dep
 def baixar(insc_id: int, doc_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
     i = _insc(db, u, insc_id)
     d = next((d for d in i.documentos if d.id == doc_id), None)
-    caminho = (UPLOAD_DIR / d.arquivo).resolve() if d else None
-    if not d or not caminho.is_file() or UPLOAD_DIR.resolve() not in caminho.parents:
+    if not d:
+        raise HTTPException(404, "Documento não encontrado")
+    if d.conteudo is not None:
+        return Response(bytes(d.conteudo), media_type=d.tipo, headers={"X-Content-Type-Options": "nosniff"})
+    # legado: arquivos gravados em disco antes da mudança
+    caminho = (UPLOAD_DIR / d.arquivo).resolve()
+    if not caminho.is_file() or UPLOAD_DIR.resolve() not in caminho.parents:
         raise HTTPException(404, "Documento não encontrado")
     return FileResponse(caminho, media_type=d.tipo, filename=d.nome_original)
 

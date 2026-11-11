@@ -13,7 +13,7 @@ app = FastAPI(title="Gestão de Academias", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173")],
+    allow_origins=[o.strip().rstrip("/") for o in os.getenv("FRONTEND_URL", "http://localhost:5173").split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
