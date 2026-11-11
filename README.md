@@ -44,7 +44,7 @@ cd backend
 
 ```bash
 # back-end
-cd backend && python -m venv .venv && .venv\Scriptsctivate && pip install -r requirements.txt
+cd backend && python -m venv .venv && .venv\Scripts\activate && pip install -r requirements.txt
 uvicorn app.main:app --reload --port 3333
 
 # front-end (outro terminal)
