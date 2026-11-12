@@ -155,3 +155,40 @@ def relatorio(u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)
         "geral": percentual(sum(l["presentes"] for l in linhas), sum(l["faltas"] for l in linhas)),
         "alunos": linhas,
     }
+
+
+@router.get("/aulas/{aula_id}/destinatarios")
+def destinatarios(aula_id: int, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Quem avisar sobre esta aula (ex.: cancelamento): os responsáveis dos alunos da turma, sem repetir a mesma pessoa.
+    Uma mãe com dois filhos na turma aparece uma vez, com os dois nomes. Alunos inativos ficam de fora."""
+    a = _aula(db, u, aula_id)
+    q = select(Aluno).where(Aluno.academia_id == u.academia_id, Aluno.status.in_(["ativo", "afastado"]))
+    if a.turma_id:
+        q = q.where(Aluno.turma_id == a.turma_id)
+    alunos = db.scalars(q.order_by(Aluno.nome)).all()
+
+    pessoas: dict[str, dict] = {}
+    sem_contato: list[str] = []
+
+    def adicionar(nome, parentesco, telefone, email, aluno_nome):
+        digitos = "".join(ch for ch in (telefone or "") if ch.isdigit())[-11:]
+        chave = digitos or (email or "").strip().lower() or nome.strip().lower()
+        p = pessoas.setdefault(chave, {"nome": nome, "parentesco": parentesco, "telefone": None, "email": None, "alunos": []})
+        p["telefone"] = p["telefone"] or (telefone or None)
+        p["email"] = p["email"] or (email or None)
+        if aluno_nome not in p["alunos"]:
+            p["alunos"].append(aluno_nome)
+
+    for al in alunos:
+        if al.responsaveis:
+            for r in al.responsaveis:
+                adicionar(r.nome, r.parentesco, r.telefone, r.email, al.nome)
+        elif al.email:  # aluno adulto sem responsável: avisa o próprio aluno pelo e-mail
+            adicionar(al.nome, "Aluno", None, al.email, al.nome)
+        else:
+            sem_contato.append(al.nome)
+
+    return {
+        "aula": _dict(a), "academia": u.academia.nome, "total_alunos": len(alunos),
+        "responsaveis": sorted(pessoas.values(), key=lambda p: p["nome"].lower()), "alunos_sem_contato": sem_contato,
+    }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, fmtData, type Aula, type Turma } from "../api";
+import AvisoAula from "../components/AvisoAula";
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 const DIA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -20,6 +21,7 @@ export default function Calendario() {
   const [dias, setDias] = useState<number[]>([]);
   const [ate, setAte] = useState(maisDias(hoje(), 90));
   const [aviso, setAviso] = useState("");
+  const [avisando, setAvisando] = useState<number | null>(null); // aula cujo aviso de cancelamento está aberto
 
   const carregar = useCallback(() => { api.get<Aula[]>("/api/aulas").then(setAulas); }, []);
   useEffect(() => { carregar(); api.get<Turma[]>("/api/turmas").then(setTurmas); }, [carregar]);
@@ -48,6 +50,8 @@ export default function Calendario() {
   async function mudarStatus(a: Aula, status: Aula["status"]) {
     await api.put(`/api/aulas/${a.id}`, { data: a.data, hora: a.hora, titulo: a.titulo, turma_id: a.turma_id, status });
     carregar();
+    if (status === "cancelada") setAvisando(a.id); // ao cancelar, já oferece o aviso pronto para os responsáveis
+    else if (avisando === a.id) setAvisando(null);
   }
   async function excluir(a: Aula) {
     if (!confirm(`Excluir a aula de ${fmtData(a.data)}? A chamada registrada nela também será apagada.`)) return;
@@ -100,7 +104,7 @@ export default function Calendario() {
         {!aulas ? <p className="mudo">Carregando…</p> : aulas.length === 0 ? <p className="mudo">Adicione a primeira aula ao calendário.</p> : (
           <ul className="lista">
             {aulas.map((a) => (
-              <li key={a.id}>
+              <li key={a.id} style={{ flexWrap: "wrap" }}>
                 <span>
                   <b>{fmtData(a.data)}</b> <small className="mudo">{diaSemana(a.data)}{a.hora && ` · ${a.hora}`}</small><br />
                   {a.titulo} <small className="mudo">{a.turma ?? "Todas as turmas"}</small>
@@ -113,9 +117,12 @@ export default function Calendario() {
                     <option value="realizada">Realizada</option>
                     <option value="cancelada">Cancelada</option>
                   </select>
-                  <button disabled={a.status !== "realizada"} onClick={() => nav(`/chamada?aula=${a.id}`)}>Chamada</button>
+                  {a.status === "cancelada"
+                    ? <button className="primario" onClick={() => setAvisando(avisando === a.id ? null : a.id)}>Avisar responsáveis</button>
+                    : <button disabled={a.status !== "realizada"} onClick={() => nav(`/chamada?aula=${a.id}`)}>Chamada</button>}
                   <button className="link" onClick={() => excluir(a)}>Excluir</button>
                 </span>
+                {avisando === a.id && a.status === "cancelada" && <AvisoAula aulaId={a.id} onFechar={() => setAvisando(null)} />}
               </li>
             ))}
           </ul>
