@@ -11,7 +11,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from ..models import (Aluno, AuditoriaLGPD, Aula, Avaliacao, ConsentimentoImagem, HistoricoGraduacao, Inscricao, Registro,
-                      Responsavel, Turma, Usuario)
+                      Pedido, Responsavel, Turma, Usuario)
 from ..schemas import AlunoIn, AvaliacaoIn, ImagemIn
 from ..security import usuario_atual, usuario_logado
 from ..servicos import (aluno_dict, apagar_aluno, avaliacoes_do_aluno, consentimentos_imagem, frequencia,
@@ -128,6 +128,11 @@ def _dados_aluno(db: Session, a: Aluno) -> dict:
         "avaliacoes": avaliacoes_do_aluno(db, a.id),
         "historico_graduacao": historico_graduacao(db, a.id),
         "consentimento_imagem": consentimentos_imagem(db, a.id),
+        "pedidos_uniforme": [
+            {"item": p.item_nome, "tamanho": p.tamanho, "cor": p.cor, "quantidade": p.quantidade,
+             "valor_unitario_centavos": p.valor_unit_centavos, "pago": p.pago, "entregue": p.entregue, "pedido_em": p.criado_em}
+            for p in db.scalars(select(Pedido).where(Pedido.aluno_id == a.id))
+        ],
         "fichas_inscricao": [
             {"enviada_em": i.criado_em, "responsavel": i.responsavel_nome, "telefone": i.responsavel_telefone,
              "email": i.email, "saude": i.observacoes, "autoriza_imagem": i.autoriza_imagem,

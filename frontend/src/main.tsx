@@ -17,6 +17,7 @@ import Inscricao from "./pages/Inscricao";
 import Inscricoes from "./pages/Inscricoes";
 import Privacidade from "./pages/Privacidade";
 import Admin from "./pages/Admin";
+import Uniformes from "./pages/Uniformes";
 import "./styles.css";
 
 function Protegido() {
@@ -42,6 +43,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="calendario" element={<Calendario />} />
             <Route path="chamada" element={<Chamada />} />
             <Route path="relatorios" element={<Relatorios />} />
+            <Route path="uniformes" element={<Uniformes />} />
             <Route path="turmas" element={<Turmas />} />
             <Route path="configuracoes" element={<Configuracoes />} />
             <Route path="admin" element={<Admin />} />

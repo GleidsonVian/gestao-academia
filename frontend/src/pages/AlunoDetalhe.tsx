@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, baixarArquivo, fmtData, linkPais, type Aluno, type Avaliacao, type ConsentimentoImagem, type Frequencia, type Historico, type Presenca } from "../api";
 import { useAuth } from "../auth";
 import AlunoForm from "../components/AlunoForm";
+import { brl } from "../api";
+import { descricaoPedido, type Pedido } from "../uniformes";
 import { linkEmail, linkWhats, montarMensagem, primeiroNome } from "../contato";
 import { FrequenciaBox, ListaAvaliacoes, Medias } from "../components/Desempenho";
 
@@ -26,6 +28,8 @@ export default function AlunoDetalhe() {
   const [visivel, setVisivel] = useState(true);
   const [obsImagem, setObsImagem] = useState("");
   const [mensagem, setMensagem] = useState<string | null>(null);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  useEffect(() => { api.get<Pedido[]>(`/api/pedidos?aluno_id=${id}`).then(setPedidos).catch(() => setPedidos([])); }, [id]);
   useEffect(() => setNotas(Object.fromEntries(criterios.map((c) => [c, 5]))), [criterios]);
 
   if (!d) return <p className="mudo">Carregando…</p>;
@@ -202,6 +206,26 @@ Para confirmar, digite o nome completo do aluno:`,
       <div className="cartao">
         <h2>Histórico de avaliações</h2>
         {d.avaliacoes.length ? <ListaAvaliacoes itens={d.avaliacoes} onExcluir={excluirAval} /> : <p className="mudo">Nenhuma avaliação ainda.</p>}
+      </div>
+
+      <div className="cartao">
+        <div className="topo">
+          <h2>Uniformes</h2>
+          <Link className="botao" to={`/uniformes?novo=1&aluno=${a.id}`}>+ Novo pedido</Link>
+        </div>
+        {pedidos.length === 0 ? <p className="mudo">Nenhum pedido de camisa ou uniforme para este aluno.</p> : (
+          <ul className="lista">
+            {pedidos.map((p) => (
+              <li key={p.id}>
+                <span><b>{descricaoPedido(p)}</b> <small className="mudo">{p.quantidade}x {brl(p.valor_unit_centavos)} = {brl(p.total_centavos)}</small></span>
+                <span className="alternar">
+                  {p.pago ? <span className="selo ok">Pago</span> : <span className="selo aviso">A pagar</span>}
+                  {p.entregue ? <span className="selo ok">Entregue</span> : <span className="selo">A entregar</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="cartao">

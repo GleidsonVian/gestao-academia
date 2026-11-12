@@ -20,7 +20,7 @@ from sqlalchemy import delete, or_, select
 from app.assinatura import TOLERANCIA_DIAS
 from app.db import Base, SessionLocal, engine, migrar
 from app.models import (Academia, Aluno, Aula, Avaliacao, ConsentimentoImagem, Documento, HistoricoGraduacao, Inscricao, Pagamento,
-                        Registro, Responsavel, Turma, Usuario)
+                        ItemLoja, Pedido, Registro, Responsavel, Turma, Usuario)
 from app.security import hash_senha
 from app.servicos import CRITERIOS_PADRAO, GRADUACOES_PADRAO
 
@@ -229,6 +229,26 @@ with SessionLocal() as db:
             notas = {c: max(0, min(10, round((base + passo * 0.8 + rnd.uniform(-1, 1)) * 2) / 2)) for c in CRITERIOS_PADRAO}
             db.add(Avaliacao(aluno_id=a.id, data=hoje - timedelta(days=dias), notas=notas, comentario=rnd.choice(comentarios),
                              visivel_pais=rnd.random() > 0.15))
+
+    # uniformes: catálogo e pedidos fictícios (quem comprou, tamanho, cor, pago/entregue)
+    camisa = ItemLoja(academia_id=grupo.id, nome="Camisa do Grupo", preco_centavos=4500, cores=["Preta", "Branca", "Verde"],
+                      tamanhos=["2", "4", "6", "8", "10", "12", "14", "16", "PP", "P", "M", "G", "GG"])
+    abada = ItemLoja(academia_id=grupo.id, nome="Abadá (calça)", preco_centavos=12000, cores=["Branco"], tamanhos=["PP", "P", "M", "G", "GG"])
+    moletom = ItemLoja(academia_id=grupo.id, nome="Moletom do Grupo", preco_centavos=9500, cores=["Preto"], tamanhos=["P", "M", "G", "GG"], ativo=False)
+    db.add_all([camisa, abada, moletom])
+    db.flush()
+    formas = ["pix", "pix", "pix", "dinheiro", "cartao"]
+    for a in rnd.sample([x for x in alunos if x.status != "inativo"], 20):
+        item = camisa if rnd.random() < 0.7 else abada
+        crianca = a.turma_id in (T_INF.id, T_JUV.id) and item is camisa
+        tamanho = rnd.choice(["4", "6", "8", "10", "12", "14"] if crianca else ["P", "M", "G", "GG"])
+        pago = rnd.random() < 0.65
+        db.add(Pedido(academia_id=grupo.id, aluno_id=a.id, item_id=item.id, item_nome=item.nome, tamanho=tamanho, cor=rnd.choice(item.cores),
+                      quantidade=2 if rnd.random() < 0.15 else 1, valor_unit_centavos=item.preco_centavos if rnd.random() < 0.9 else item.preco_centavos - 500,
+                      pago=pago, pago_em=hoje - timedelta(days=rnd.randint(0, 25)) if pago else None, forma_pagamento=rnd.choice(formas) if pago else None,
+                      entregue=pago and rnd.random() < 0.6, entregue_em=hoje - timedelta(days=rnd.randint(0, 10)) if pago and rnd.random() < 0.6 else None,
+                      observacao=rnd.choice([None, None, None, "Pagou metade, resto na próxima aula", "Entregar na roda de sábado"]),
+                      criado_em=agora - timedelta(days=rnd.randint(1, 40))))
 
     # links dos pais para 10 alunos
     links = []

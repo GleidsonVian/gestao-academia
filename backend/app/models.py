@@ -240,3 +240,43 @@ class Responsavel(Base):
     telefone: Mapped[str | None] = mapped_column(String(40))
     email: Mapped[str | None] = mapped_column(String(200))
     ordem: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ItemLoja(Base):
+    """Catálogo de uniformes/camisas da academia, com as cores e tamanhos disponíveis."""
+
+    __tablename__ = "itens_loja"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    academia_id: Mapped[int] = mapped_column(ForeignKey("academias.id", ondelete="CASCADE"), index=True)
+    nome: Mapped[str] = mapped_column(String(120))
+    preco_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    cores: Mapped[list] = mapped_column(JSON, default=list)
+    tamanhos: Mapped[list] = mapped_column(JSON, default=list)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Pedido(Base):
+    """Venda de um item para um aluno: tamanho, cor, quantidade, se foi pago e se foi entregue."""
+
+    __tablename__ = "pedidos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    academia_id: Mapped[int] = mapped_column(ForeignKey("academias.id", ondelete="CASCADE"), index=True)
+    aluno_id: Mapped[int] = mapped_column(ForeignKey("alunos.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("itens_loja.id", ondelete="RESTRICT"), index=True)
+    item_nome: Mapped[str] = mapped_column(String(120))  # cópia do nome: o histórico não muda se o item for renomeado
+    tamanho: Mapped[str | None] = mapped_column(String(20))
+    cor: Mapped[str | None] = mapped_column(String(40))
+    quantidade: Mapped[int] = mapped_column(Integer, default=1)
+    valor_unit_centavos: Mapped[int] = mapped_column(Integer, default=0)
+    pago: Mapped[bool] = mapped_column(Boolean, default=False)
+    pago_em: Mapped[date | None] = mapped_column(Date)
+    forma_pagamento: Mapped[str | None] = mapped_column(String(20))
+    entregue: Mapped[bool] = mapped_column(Boolean, default=False)
+    entregue_em: Mapped[date | None] = mapped_column(Date)
+    observacao: Mapped[str | None] = mapped_column(String(300))
+    criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    aluno: Mapped["Aluno"] = relationship()

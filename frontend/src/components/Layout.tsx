@@ -11,6 +11,7 @@ const itens = [
   ["/alunos", "Alunos"],
   ["/calendario", "Calendário"],
   ["/chamada", "Chamada"],
+  ["/uniformes", "Uniformes"],
   ["/relatorios", "Relatórios"],
   ["/turmas", "Turmas"],
   ["/configuracoes", "Configurações"],
