@@ -100,7 +100,10 @@ export type Assinatura = {
   status: "teste" | "ativa" | "suspensa" | "cancelada"; estado: "teste" | "ativa" | "tolerancia" | "vencida" | "suspensa" | "cancelada";
   acesso_ate: string | null; dias_restantes: number | null; bloqueada: boolean; tolerancia_dias: number; contato: string;
 };
-export type Aparencia = { cor_primaria: string | null; tem_logo: boolean; logo_versao: number; logo_opacidade: number };
+export type Aparencia = {
+  cor_primaria: string | null; tem_logo: boolean; logo_versao: number; logo_opacidade: number;
+  logo_escala: number; logo_posicao: "centro" | "topo-esq" | "topo-dir" | "base-esq" | "base-dir" | "mosaico"; tema_completo: boolean;
+};
 export type Me = { usuario: { id: number; nome: string; email: string; is_superadmin: boolean }; assinatura: Assinatura; academia: Academia; aparencia: Aparencia };
 export type AcademiaAdmin = {
   id: number; nome: string; modalidade: string; criada_em: string; email_dono: string | null; alunos: number; usuarios: number;

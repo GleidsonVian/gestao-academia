@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { api, brl, enviarArquivo, fmtData, type AcademiaAdmin, type Assinatura, type Receita } from "../api";
 import { useAuth } from "../auth";
@@ -14,6 +14,7 @@ const FORMAS = [["pix", "Pix"], ["boleto", "Boleto"], ["cartao", "Cartão"], ["t
 const hoje = () => new Date().toISOString().slice(0, 10);
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const paraNumero = (t: string) => Number(t.replace(/\./g, "").replace(",", "."));
+const reais = (c: number | null) => (c ? (c / 100).toFixed(2).replace(".", ",") : "");
 
 type Dados = { resumo: Record<string, number>; total: number; academias: AcademiaAdmin[] };
 
@@ -52,11 +53,11 @@ export default function Admin() {
 
   function abrirPagamento(a: AcademiaAdmin) {
     setEditando(null); setPagando(a.id); setArquivo(null);
-    setPg({ valor: a.valor_mensal_centavos ? (a.valor_mensal_centavos / 100).toFixed(2).replace(".", ",") : "", forma: "pix", data: hoje(), dias: "30", obs: "", estender: true });
+    setPg({ valor: reais(a.valor_mensal_centavos), forma: "pix", data: hoje(), dias: "30", obs: "", estender: true });
   }
   function abrirEdicao(a: AcademiaAdmin) {
     setPagando(null); setEditando(a.id);
-    setForm({ status: a.status, acesso_ate: a.acesso_ate ?? "", valor: a.valor_mensal_centavos ? (a.valor_mensal_centavos / 100).toFixed(2).replace(".", ",") : "" });
+    setForm({ status: a.status, acesso_ate: a.acesso_ate ?? "", valor: reais(a.valor_mensal_centavos) });
   }
   const salvarEdicao = (a: AcademiaAdmin) =>
     agir(async () => {
@@ -126,89 +127,84 @@ export default function Admin() {
 
       {aba === "pagamentos" && d && <AdminPagamentos academias={d.academias} atualizar={carregar} erro={mostrarErro} />}
 
-      {aba === "academias" && (
-        <div className="cartao" style={{ overflowX: "auto" }}>
-          {!d ? <p className="mudo">Carregando…</p> : (
-            <table className="tabela-admin">
-              <thead><tr><th>#</th><th>Academia</th><th>Responsável</th><th>Alunos</th><th>Situação</th><th>Acesso até</th><th>Mensalidade</th><th>Último pgto</th><th>Ações</th></tr></thead>
-              <tbody>
-                {d.academias.map((a) => (
-                  <Fragment key={a.id}>
-                    <tr>
-                      <td>{a.id}</td>
-                      <td><b>{a.nome}</b><br /><small className="mudo">{a.modalidade}</small></td>
-                      <td>{a.email_dono ?? "—"}</td>
-                      <td>{a.alunos}</td>
-                      <td>
-                        <span className={`selo ${TOM[a.estado]}`}>{ROTULO[a.estado]}</span>
-                        {a.dias_restantes !== null && <small className="mudo"> {a.estado === "tolerancia" ? `bloqueia em ${a.dias_restantes}d` : `${a.dias_restantes}d`}</small>}
-                      </td>
-                      <td>{fmtData(a.acesso_ate)}</td>
-                      <td>{a.valor_mensal_centavos ? brl(a.valor_mensal_centavos) : <span className="mudo">—</span>}</td>
-                      <td>{a.ultimo_pagamento ? fmtData(a.ultimo_pagamento) : <span className="mudo">nunca</span>}<br /><small className="mudo">{a.total_pago_centavos ? `total ${brl(a.total_pago_centavos)}` : ""}</small></td>
-                      <td className="acoes" style={{ marginTop: 0 }}>
-                        <button className="primario" onClick={() => (pagando === a.id ? setPagando(null) : abrirPagamento(a))}>Registrar pagamento</button>
-                        {a.status === "suspensa" || a.status === "cancelada"
-                          ? <button onClick={() => liberar(a)}>Liberar</button>
-                          : <button className="perigo" onClick={() => bloquear(a)}>Bloquear</button>}
-                        <button onClick={() => (editando === a.id ? setEditando(null) : abrirEdicao(a))}>Editar</button>
-                      </td>
-                    </tr>
+      {aba === "academias" && (!d ? <p className="mudo">Carregando…</p> : d.academias.map((a) => (
+        <div className="cartao" key={a.id}>
+          <div className="acad-topo">
+            <div style={{ minWidth: 0 }}>
+              <h2>{a.nome}</h2>
+              <p className="mudo">#{a.id} · {a.modalidade} · {a.email_dono ?? "sem responsável"} · {a.alunos} aluno(s)</p>
+            </div>
+            <div className="acad-situacao">
+              <span className={`selo ${TOM[a.estado]}`}>{ROTULO[a.estado]}</span>
+              {a.dias_restantes !== null && <small className="mudo">{a.estado === "tolerancia" ? `bloqueia em ${a.dias_restantes}d` : `${a.dias_restantes}d restantes`}</small>}
+            </div>
+          </div>
 
-                    {pagando === a.id && (
-                      <tr className="editar">
-                        <td colSpan={9}>
-                          <b>Registrar pagamento — {a.nome}</b>
-                          <div className="duas" style={{ marginTop: ".5rem" }}>
-                            <label>Valor pago (R$)<input inputMode="decimal" placeholder="ex.: 99,90 (0 = cortesia)" value={pg.valor} onChange={(e) => setPg({ ...pg, valor: e.target.value })} /></label>
-                            <label>Forma
-                              <select value={pg.forma} onChange={(e) => setPg({ ...pg, forma: e.target.value })}>
-                                {FORMAS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-                              </select>
-                            </label>
-                            <label>Data do pagamento<input type="date" max={hoje()} value={pg.data} onChange={(e) => setPg({ ...pg, data: e.target.value })} /></label>
-                            <label>Dias de acesso concedidos<input type="number" min={1} max={366} value={pg.dias} onChange={(e) => setPg({ ...pg, dias: e.target.value })} /></label>
-                          </div>
-                          <label>Observação (opcional)<input value={pg.obs} onChange={(e) => setPg({ ...pg, obs: e.target.value })} placeholder="ex.: Pix de Paulo Ricardo, 1ª mensalidade" /></label>
-                          <label>Comprovante (opcional — PDF, JPG ou PNG até 5 MB)
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
-                          </label>
-                          <label className="check">
-                            <input type="checkbox" checked={pg.estender} onChange={(e) => setPg({ ...pg, estender: e.target.checked })} />
-                            Estender o acesso (desmarque para só registrar um pagamento que já foi considerado no vencimento)
-                          </label>
-                          <div className="acoes">
-                            <button className="primario" onClick={() => registrarPagamento(a)}>Salvar pagamento</button>
-                            <button onClick={() => setPagando(null)}>Cancelar</button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
+          <dl className="acad-dados">
+            <div><dt>Acesso até</dt><dd>{fmtData(a.acesso_ate)}</dd></div>
+            <div><dt>Mensalidade</dt><dd>{a.valor_mensal_centavos ? brl(a.valor_mensal_centavos) : "—"}</dd></div>
+            <div><dt>Último pagamento</dt><dd>{a.ultimo_pagamento ? fmtData(a.ultimo_pagamento) : "nunca"}</dd></div>
+            <div><dt>Total pago</dt><dd>{brl(a.total_pago_centavos)}</dd></div>
+          </dl>
 
-                    {editando === a.id && (
-                      <tr className="editar">
-                        <td colSpan={9}>
-                          <div className="filtros" style={{ marginBottom: 0 }}>
-                            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Assinatura["status"] })}>
-                              <option value="teste">Teste</option><option value="ativa">Ativa</option>
-                              <option value="suspensa">Suspensa (bloqueada)</option><option value="cancelada">Cancelada (bloqueada)</option>
-                            </select>
-                            <input type="date" value={form.acesso_ate} onChange={(e) => setForm({ ...form, acesso_ate: e.target.value })} title="Acesso até" />
-                            <input inputMode="decimal" placeholder="Mensalidade (R$)" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} style={{ maxWidth: 170 }} />
-                            <button className="primario" onClick={() => salvarEdicao(a)}>Salvar</button>
-                            <button onClick={() => setEditando(null)}>Cancelar</button>
-                          </div>
-                          <small className="mudo">Data vazia = acesso sem vencimento (“acesso até” é o último dia liberado). A mensalidade só alimenta a previsão de receita.</small>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
+          <div className="acoes" style={{ marginTop: 0 }}>
+            <button className="primario" onClick={() => (pagando === a.id ? setPagando(null) : abrirPagamento(a))}>Registrar pagamento</button>
+            {a.status === "suspensa" || a.status === "cancelada"
+              ? <button onClick={() => liberar(a)}>Liberar</button>
+              : <button className="perigo" onClick={() => bloquear(a)}>Bloquear</button>}
+            <button onClick={() => (editando === a.id ? setEditando(null) : abrirEdicao(a))}>Editar</button>
+          </div>
+
+          {pagando === a.id && (
+            <div className="painel">
+              <b>Registrar pagamento — {a.nome}</b>
+              <div className="duas">
+                <label>Valor pago (R$)<input inputMode="decimal" placeholder="ex.: 99,90 (0 = cortesia)" value={pg.valor} onChange={(e) => setPg({ ...pg, valor: e.target.value })} /></label>
+                <label>Forma
+                  <select value={pg.forma} onChange={(e) => setPg({ ...pg, forma: e.target.value })}>
+                    {FORMAS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+                  </select>
+                </label>
+                <label>Data do pagamento<input type="date" max={hoje()} value={pg.data} onChange={(e) => setPg({ ...pg, data: e.target.value })} /></label>
+                <label>Dias de acesso concedidos<input type="number" min={1} max={366} value={pg.dias} onChange={(e) => setPg({ ...pg, dias: e.target.value })} /></label>
+              </div>
+              <label>Observação (opcional)<input value={pg.obs} onChange={(e) => setPg({ ...pg, obs: e.target.value })} placeholder="ex.: Pix do Paulo Ricardo, 1ª mensalidade" /></label>
+              <label>Comprovante (opcional): PDF, JPG ou PNG até 5 MB
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+              </label>
+              <label className="check">
+                <input type="checkbox" checked={pg.estender} onChange={(e) => setPg({ ...pg, estender: e.target.checked })} />
+                Estender o acesso (desmarque para só registrar um pagamento que já foi considerado no vencimento)
+              </label>
+              <div className="acoes">
+                <button className="primario" onClick={() => registrarPagamento(a)}>Salvar pagamento</button>
+                <button onClick={() => setPagando(null)}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
+          {editando === a.id && (
+            <div className="painel">
+              <b>Editar — {a.nome}</b>
+              <div className="duas">
+                <label>Situação
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Assinatura["status"] })}>
+                    <option value="teste">Teste</option><option value="ativa">Ativa</option>
+                    <option value="suspensa">Suspensa (bloqueada)</option><option value="cancelada">Cancelada (bloqueada)</option>
+                  </select>
+                </label>
+                <label>Acesso até (último dia liberado)<input type="date" value={form.acesso_ate} onChange={(e) => setForm({ ...form, acesso_ate: e.target.value })} /></label>
+                <label>Mensalidade (R$)<input inputMode="decimal" placeholder="ex.: 99,90" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} /></label>
+              </div>
+              <p className="mudo" style={{ margin: ".25rem 0 .75rem" }}>Data vazia = acesso sem vencimento. A mensalidade só alimenta a previsão de receita.</p>
+              <div className="acoes">
+                <button className="primario" onClick={() => salvarEdicao(a)}>Salvar</button>
+                <button onClick={() => setEditando(null)}>Cancelar</button>
+              </div>
+            </div>
           )}
         </div>
-      )}
+      )))}
     </>
   );
 }

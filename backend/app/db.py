@@ -51,6 +51,8 @@ def migrar():
                       ("valor_mensal_centavos", "INTEGER"),
                       ("cor_primaria", "VARCHAR(7)"), ("logo_tipo", "VARCHAR(80)"), ("logo_tamanho", "INTEGER"),
                       ("logo_versao", "INTEGER DEFAULT 0"), ("logo_opacidade", "INTEGER DEFAULT 8"),
+                      ("logo_escala", "INTEGER DEFAULT 70"), ("logo_posicao", "VARCHAR(12) DEFAULT 'centro'"),
+                      ("tema_completo", "BOOLEAN DEFAULT TRUE"),
                       ("logo_conteudo", "BLOB" if EH_SQLITE else "BYTEA")],
         "usuarios": [("is_superadmin", "BOOLEAN DEFAULT FALSE")],
         "pagamentos": [("comprovante_nome", "VARCHAR(200)"), ("comprovante_tipo", "VARCHAR(80)"),

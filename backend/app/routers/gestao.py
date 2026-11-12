@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 
 import re
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel, Field
@@ -124,14 +125,18 @@ def _geral(db: Session, academia_id: int) -> int | None:
 # ---------------- aparência: cor do app e logo de fundo ----------------
 class AparenciaIn(BaseModel):
     cor_primaria: str | None = Field(default=None, pattern="^#[0-9a-fA-F]{6}$")  # None = cor padrão
-    logo_opacidade: int = Field(default=8, ge=2, le=40)
+    tema_completo: bool = True  # a cor também tinge fundo, cartões e bordas
+    logo_opacidade: int = Field(default=8, ge=2, le=60)
+    logo_escala: int = Field(default=70, ge=15, le=140)
+    logo_posicao: Literal["centro", "topo-esq", "topo-dir", "base-esq", "base-dir", "mosaico"] = "centro"
 
 
 @router.put("/academia/aparencia")
 def definir_aparencia(body: AparenciaIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
     a = u.academia
     a.cor_primaria = body.cor_primaria.lower() if body.cor_primaria else None
-    a.logo_opacidade = body.logo_opacidade
+    a.logo_opacidade, a.logo_escala, a.logo_posicao = body.logo_opacidade, body.logo_escala, body.logo_posicao
+    a.tema_completo = body.tema_completo
     db.commit()
     return aparencia(a)
 

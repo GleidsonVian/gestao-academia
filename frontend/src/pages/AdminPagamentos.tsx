@@ -7,7 +7,7 @@ const FORMA: Record<string, string> = {
 
 type Props = { academias: AcademiaAdmin[]; atualizar: () => void; erro: (m: string) => void };
 
-/** Aba "Pagamentos": histórico financeiro, comprovantes e estornos. */
+/** Aba "Pagamentos": histórico financeiro, comprovantes e estornos (lista em cartões, sem rolagem lateral). */
 export default function AdminPagamentos({ academias, atualizar, erro }: Props) {
   const [lista, setLista] = useState<{ total_centavos: number; itens: PagamentoAdmin[] } | null>(null);
   const [academiaId, setAcademiaId] = useState("");
@@ -57,33 +57,32 @@ export default function AdminPagamentos({ academias, atualizar, erro }: Props) {
         <button onClick={exportar} disabled={!lista?.itens.length}>Exportar CSV</button>
       </div>
 
-      <div className="cartao" style={{ overflowX: "auto" }}>
+      <div className="cartao">
         {!lista ? <p className="mudo">Carregando…</p> : lista.itens.length === 0 ? <p className="mudo">Nenhum pagamento registrado{mes || academiaId ? " neste filtro" : ""}.</p> : (
           <>
-            <p><b>{brl(lista.total_centavos)}</b> <span className="mudo">recebidos neste filtro (sem estornos) · {lista.itens.length} registro(s)</span></p>
-            <table className="tabela-admin">
-              <thead><tr><th>Data</th><th>Academia</th><th>Valor</th><th>Forma</th><th>Dias</th><th>Observação</th><th>Comprovante</th><th></th></tr></thead>
-              <tbody>
-                {lista.itens.map((p) => (
-                  <tr key={p.id} style={p.estornado ? { opacity: 0.55 } : undefined}>
-                    <td>{fmtData(p.data_pagamento)}</td>
-                    <td>{p.academia}</td>
-                    <td><b style={p.estornado ? { textDecoration: "line-through" } : undefined}>{brl(p.valor_centavos)}</b></td>
-                    <td>{FORMA[p.forma] ?? p.forma}</td>
-                    <td>{p.dias_concedidos}</td>
-                    <td style={{ whiteSpace: "normal", maxWidth: 220 }}>{p.observacao ?? "—"}</td>
-                    <td>
-                      {p.comprovante ? <button className="link" onClick={() => ver(p)}>📎 {p.comprovante.nome}</button> : <span className="mudo">sem anexo</span>}{" "}
-                      <label className="link" style={{ display: "inline", cursor: "pointer", marginBottom: 0 }}>
-                        {p.comprovante ? "trocar" : "anexar"}
-                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={(e) => { anexar(p, e.target.files?.[0]); e.target.value = ""; }} />
-                      </label>
-                    </td>
-                    <td>{p.estornado ? <span className="selo perigo">Estornado</span> : <button className="link" onClick={() => estornar(p)}>Estornar</button>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <p style={{ marginTop: 0 }}><b>{brl(lista.total_centavos)}</b> <span className="mudo">recebidos neste filtro (sem estornos) · {lista.itens.length} registro(s)</span></p>
+            {lista.itens.map((p) => (
+              <div className="pg" key={p.id} style={p.estornado ? { opacity: 0.6 } : undefined}>
+                <div className="pg-info">
+                  <b>{p.academia}</b> {p.estornado && <span className="selo perigo">Estornado</span>}<br />
+                  <small className="mudo">
+                    {fmtData(p.data_pagamento)} · {FORMA[p.forma] ?? p.forma} · {p.dias_concedidos} dia(s) de acesso
+                    {p.observacao ? ` · ${p.observacao}` : ""}
+                  </small>
+                </div>
+                <span className="pg-valor" style={p.estornado ? { textDecoration: "line-through" } : undefined}>{brl(p.valor_centavos)}</span>
+                <div className="pg-acoes">
+                  {p.comprovante
+                    ? <button className="link" onClick={() => ver(p)}>📎 {p.comprovante.nome}</button>
+                    : <small className="mudo">sem comprovante</small>}
+                  <label className="link" style={{ display: "inline", cursor: "pointer", margin: 0 }}>
+                    {p.comprovante ? "trocar" : "anexar"}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={(e) => { anexar(p, e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                  {!p.estornado && <button className="link" onClick={() => estornar(p)}>Estornar</button>}
+                </div>
+              </div>
+            ))}
           </>
         )}
       </div>

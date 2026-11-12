@@ -24,6 +24,9 @@ class Academia(Base):
     logo_tamanho: Mapped[int | None] = mapped_column(Integer)
     logo_versao: Mapped[int] = mapped_column(Integer, default=0)  # muda a cada troca (evita cache velho)
     logo_opacidade: Mapped[int] = mapped_column(Integer, default=8)  # % de visibilidade da marca d'água de fundo
+    logo_escala: Mapped[int] = mapped_column(Integer, default=70)  # tamanho do logo de fundo (em vmin)
+    logo_posicao: Mapped[str] = mapped_column(String(12), default="centro")  # centro | topo-esq | topo-dir | base-esq | base-dir | mosaico
+    tema_completo: Mapped[bool] = mapped_column(Boolean, default=True)  # True = a cor também tinge fundo, cartões e bordas
     logo_conteudo: Mapped[bytes | None] = deferred(mapped_column(LargeBinary))
     contato_privacidade: Mapped[str | None] = mapped_column(String(200))  # e-mail/telefone do responsável pelos dados
     token_inscricao: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)  # link público de inscrição

@@ -23,7 +23,7 @@ button.primario { background: var(--cor); border-color: var(--cor); color: var(-
 button.perigo { color: var(--falta); }
 button.link { border: 0; background: none; padding: 0; color: var(--cor); }
 
-.app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
 .menu { background: var(--card); border-right: 1px solid var(--borda); padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 .marca { display: flex; flex-direction: column; } .marca small { color: var(--mudo); }
 .menu nav { display: flex; flex-direction: column; gap: .15rem; flex: 1; }
@@ -93,10 +93,29 @@ th { font-size: .8rem; color: var(--mudo); font-weight: 600; } tr:last-child td 
 
 /* personalizacao: logo de fundo (marca dagua) e logo na barra lateral */
 body.com-logo::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: var(--logo-opacidade, .08);
-  background: var(--logo-url) center / min(70vmin, 560px) no-repeat; }
+  background: var(--logo-url) var(--logo-pos, center) / var(--logo-tam, 70vmin) var(--logo-rep, no-repeat); }
 body.com-logo .app, body.com-logo .pais { position: relative; z-index: 1; }
 body.com-logo .cartao { background: color-mix(in srgb, var(--card) 90%, transparent); }
 .marca-logo { width: 100%; max-height: 72px; object-fit: contain; object-position: left; margin-bottom: .4rem; }
 .previa-logo { max-width: 160px; max-height: 120px; object-fit: contain; border: 1px solid var(--borda); border-radius: 8px; padding: .4rem; background: var(--bg); }
 .cores { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-bottom: .75rem; } .cores .amostra { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--borda); padding: 0; cursor: pointer; }
 .cores input[type=color] { width: 44px; height: 34px; padding: 2px; }
+
+/* ---- Admin: cartoes responsivos (sem rolagem lateral) ---- */
+.conteudo { min-width: 0; }
+.acad-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem 1rem; flex-wrap: wrap; }
+.acad-topo h2 { margin: 0 0 .15rem; overflow-wrap: anywhere; } .acad-topo p { margin: 0; overflow-wrap: anywhere; }
+.acad-situacao { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.acad-dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem 1rem; margin: .85rem 0; }
+.acad-dados dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; color: var(--mudo); } .acad-dados dd { margin: .1rem 0 0; font-weight: 600; }
+.painel { background: var(--bg); border: 1px solid var(--borda); border-radius: 10px; padding: 1rem; margin-top: .85rem; }
+.painel > b { display: block; margin-bottom: .6rem; }
+.pg { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid var(--borda); }
+.pg:last-child { border-bottom: 0; } .pg-info { min-width: 0; flex: 1 1 260px; overflow-wrap: anywhere; } .pg-valor { font-size: 1.1rem; font-weight: 700; white-space: nowrap; }
+.pg-acoes { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.seletor-paleta { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.paleta { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .7rem .35rem .4rem; border-radius: 999px; }
+.paleta i { width: 18px; height: 18px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,.25); }
+.paleta.ativa { outline: 2px solid var(--cor); outline-offset: 1px; }
+.dois-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 1rem; }
+@media (max-width: 760px) { .pg-valor { order: -1; } .acad-dados { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

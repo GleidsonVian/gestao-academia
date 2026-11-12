@@ -150,6 +150,9 @@ def aparencia(a) -> dict:
         "tem_logo": bool(a.logo_tamanho),
         "logo_versao": a.logo_versao or 0,
         "logo_opacidade": 8 if a.logo_opacidade is None else a.logo_opacidade,
+        "logo_escala": 70 if a.logo_escala is None else a.logo_escala,
+        "logo_posicao": a.logo_posicao or "centro",
+        "tema_completo": True if a.tema_completo is None else bool(a.tema_completo),
     }
 
 
