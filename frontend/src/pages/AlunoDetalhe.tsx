@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, baixarArquivo, fmtData, linkPais, type Aluno, type Avaliacao, type ConsentimentoImagem, type Frequencia, type Historico, type Presenca } from "../api";
 import { useAuth } from "../auth";
 import AlunoForm from "../components/AlunoForm";
+import { linkEmail, linkWhats, montarMensagem, primeiroNome } from "../contato";
 import { FrequenciaBox, ListaAvaliacoes, Medias } from "../components/Desempenho";
 
 type Detalhe = { aluno: Aluno; frequencia: Frequencia; presencas: Presenca[]; avaliacoes: Avaliacao[]; media: Record<string, number>; historico_graduacao: Historico[]; consentimento_imagem: ConsentimentoImagem[] };
@@ -24,6 +25,7 @@ export default function AlunoDetalhe() {
   const [comentario, setComentario] = useState("");
   const [visivel, setVisivel] = useState(true);
   const [obsImagem, setObsImagem] = useState("");
+  const [mensagem, setMensagem] = useState<string | null>(null);
   useEffect(() => setNotas(Object.fromEntries(criterios.map((c) => [c, 5]))), [criterios]);
 
   if (!d) return <p className="mudo">Carregando…</p>;
@@ -79,9 +81,9 @@ Para confirmar, digite o nome completo do aluno:`,
     carregar();
   }
 
-  const whats = a.responsavel_telefone && a.token_pais
-    ? `https://wa.me/55${a.responsavel_telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Acompanhe o desempenho de ${a.nome}: ${linkPais(a.token_pais)}`)}`
-    : null;
+  // mensagem editável: {responsavel} vira o primeiro nome de quem vai receber
+  const modelo = mensagem ?? `Olá, {responsavel}! Aqui é da ${me!.academia.nome}. Sobre ${a.nome}: `;
+  const assunto = `Sobre ${a.nome} — ${me!.academia.nome}`;
 
   return (
     <>
@@ -99,10 +101,46 @@ Para confirmar, digite o nome completo do aluno:`,
               <button onClick={() => setEditando(true)}>Editar</button>
             </div>
           </div>
-          <p>Responsável: {a.responsavel_nome ?? "—"} · {a.responsavel_telefone ?? "sem telefone"} · {a.email ?? "sem e-mail"}</p>
+          {a.email && <p>E-mail do aluno: {a.email}</p>}
           {a.observacoes && <p className="mudo">Obs.: {a.observacoes}</p>}
         </div>
       )}
+
+      <div className="cartao">
+        <h2>Responsáveis e contato</h2>
+        {a.responsaveis.length === 0 ? (
+          <p className="mudo">Nenhum responsável cadastrado. Use <b>Editar</b> para adicionar (nome, telefone e e-mail de cada um).</p>
+        ) : (
+          <>
+            <label>
+              Mensagem (use {"{responsavel}"} para o primeiro nome de quem recebe)
+              <textarea rows={2} value={modelo} onChange={(e) => setMensagem(e.target.value)} />
+            </label>
+            <ul className="lista">
+              {a.responsaveis.map((r, i) => {
+                const texto = montarMensagem(modelo, r);
+                const zap = linkWhats(r.telefone, texto);
+                const mail = linkEmail(r.email, assunto, texto);
+                return (
+                  <li key={i}>
+                    <span style={{ minWidth: 0 }}>
+                      <b>{r.nome}</b> {r.parentesco && <small className="mudo">({r.parentesco})</small>} {i === 0 && <span className="selo">principal</span>}
+                      <br />
+                      <small className="mudo">{r.telefone || "sem telefone"} · {r.email || "sem e-mail"}</small>
+                    </span>
+                    <span className="alternar">
+                      {zap ? <a className="botao" href={zap} target="_blank" rel="noreferrer">WhatsApp</a> : <button disabled>WhatsApp</button>}
+                      {mail ? <a className="botao" href={mail}>E-mail</a> : <button disabled>E-mail</button>}
+                      {r.telefone && <a className="botao" href={`tel:${r.telefone.replace(/[^\d+]/g, "")}`}>Ligar</a>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mudo" style={{ marginBottom: 0 }}>O WhatsApp abre a conversa pelo wa.me e o e-mail abre o seu programa de e-mail, já com destinatário, assunto ({assunto}) e mensagem.</p>
+          </>
+        )}
+      </div>
 
       <div className="cartao">
         <h2>Link para os pais</h2>
@@ -111,7 +149,10 @@ Para confirmar, digite o nome completo do aluno:`,
             <input readOnly value={linkPais(a.token_pais)} onFocus={(e) => e.target.select()} />
             <div className="acoes">
               <button className="primario" onClick={copiar}>{copiado ? "Copiado!" : "Copiar link"}</button>
-              {whats && <a className="botao" href={whats} target="_blank" rel="noreferrer">Enviar no WhatsApp</a>}
+              {a.responsaveis.map((r, i) => {
+                const href = linkWhats(r.telefone, `Olá, ${primeiroNome(r.nome)}! Acompanhe o desempenho de ${a.nome}: ${linkPais(a.token_pais!)}`);
+                return href && <a key={i} className="botao" href={href} target="_blank" rel="noreferrer">Enviar link para {primeiroNome(r.nome)}</a>;
+              })}
               <button onClick={gerarLink}>Gerar novo</button>
               <button className="perigo" onClick={revogar}>Desativar</button>
             </div>

@@ -76,6 +76,8 @@ class Aluno(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     turma: Mapped[Turma | None] = relationship()
+    responsaveis: Mapped[list["Responsavel"]] = relationship(
+        order_by="Responsavel.ordem", cascade="all, delete-orphan", lazy="selectin")
 
 
 class Aula(Base):
@@ -224,3 +226,17 @@ class Pagamento(Base):
     comprovante_conteudo: Mapped[bytes | None] = deferred(mapped_column(LargeBinary))
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
     criado_em: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Responsavel(Base):
+    """Responsáveis do aluno (pai, mãe, avó...), cada um com telefone e e-mail próprios. O 1º (ordem 0) é o principal."""
+
+    __tablename__ = "responsaveis"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    aluno_id: Mapped[int] = mapped_column(ForeignKey("alunos.id", ondelete="CASCADE"), index=True)
+    nome: Mapped[str] = mapped_column(String(160))
+    parentesco: Mapped[str | None] = mapped_column(String(40))
+    telefone: Mapped[str | None] = mapped_column(String(40))
+    email: Mapped[str | None] = mapped_column(String(200))
+    ordem: Mapped[int] = mapped_column(Integer, default=0)

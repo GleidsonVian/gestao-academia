@@ -35,6 +35,13 @@ class TurmaIn(BaseModel):
     horario: str | None = None
 
 
+class ResponsavelIn(BaseModel):
+    nome: str = Field(min_length=1, max_length=160)
+    parentesco: str | None = Field(default=None, max_length=40)
+    telefone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=200)
+
+
 class AlunoIn(BaseModel):
     nome: str = Field(min_length=2, max_length=160)
     apelido: str | None = None
@@ -45,6 +52,7 @@ class AlunoIn(BaseModel):
     email: str | None = None
     graduacao: str | None = None
     observacoes: str | None = None
+    responsaveis: list[ResponsavelIn] | None = Field(default=None, max_length=8)  # None = não mexe; lista = substitui
     status: Literal["ativo", "afastado", "inativo"] = "ativo"
 
 

@@ -11,7 +11,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from ..models import (Aluno, AuditoriaLGPD, Aula, Avaliacao, ConsentimentoImagem, HistoricoGraduacao, Inscricao, Registro,
-                      Turma, Usuario)
+                      Responsavel, Turma, Usuario)
 from ..schemas import AlunoIn, AvaliacaoIn, ImagemIn
 from ..security import usuario_atual, usuario_logado
 from ..servicos import (aluno_dict, apagar_aluno, avaliacoes_do_aluno, consentimentos_imagem, frequencia,
@@ -37,10 +37,20 @@ def _valida_turma(db: Session, u: Usuario, turma_id: int | None):
 
 
 def _preenche(a: Aluno, body: AlunoIn):
-    for campo, valor in body.model_dump().items():
+    for campo, valor in body.model_dump(exclude={"responsaveis"}).items():
         if isinstance(valor, str):
             valor = valor.strip() or None
         setattr(a, campo, valor)
+    if body.responsaveis is not None:  # lista enviada = substitui todos os responsáveis
+        a.responsaveis.clear()
+        for ordem, r in enumerate(body.responsaveis):
+            a.responsaveis.append(Responsavel(
+                nome=r.nome.strip(), parentesco=(r.parentesco or "").strip() or None,
+                telefone=(r.telefone or "").strip() or None, email=(r.email or "").strip() or None, ordem=ordem))
+        # o 1º responsável também fica nos campos antigos (listas e exportações continuam funcionando)
+        principal = body.responsaveis[0] if body.responsaveis else None
+        a.responsavel_nome = principal.nome.strip() if principal else None
+        a.responsavel_telefone = ((principal.telefone or "").strip() or None) if principal else None
 
 
 @router.get("/alunos")

@@ -27,6 +27,18 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 
+if EH_SQLITE:
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def _ligar_foreign_keys(conexao, _):
+        """O SQLite ignora FOREIGN KEY por padrão: sem isto, apagar um aluno deixaria chamada/avaliações órfãs
+        (e o ON DELETE CASCADE só funcionaria no PostgreSQL)."""
+        cur = conexao.cursor()
+        cur.execute("PRAGMA foreign_keys=ON")
+        cur.close()
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -73,6 +85,14 @@ def migrar():
         from .assinatura import TESTE_DIAS
         con.execute(text("UPDATE academias SET status_assinatura = 'teste', acesso_ate = :d WHERE status_assinatura IS NULL"),
                     {"d": date.today() + timedelta(days=TESTE_DIAS)})
+
+        # responsaveis: quem ja tinha nome/telefone do responsavel no cadastro vira o responsavel principal
+        if "responsaveis" in insp.get_table_names():
+            con.execute(text(
+                "INSERT INTO responsaveis (aluno_id, nome, telefone, ordem) "
+                "SELECT id, COALESCE(responsavel_nome, 'Responsavel'), responsavel_telefone, 0 FROM alunos "
+                "WHERE (responsavel_nome IS NOT NULL OR responsavel_telefone IS NOT NULL) "
+                "AND id NOT IN (SELECT aluno_id FROM responsaveis)"))
 
         # presencas (antigo: presente/faltou por data) -> aulas + registros_chamada (3 estados)
         if "presencas" in insp.get_table_names():

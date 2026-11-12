@@ -11,7 +11,7 @@ App web genérico para qualquer modalidade (capoeira, kickboxing, muay thai, jiu
 - **Inscrição digital**: link público com ficha, documentos, declaração de saúde/responsabilidade e autorização de imagem (opcional); o professor aprova ou recusa
 - **Calendário de aulas** (com **aulas recorrentes**: “toda segunda e quarta às 18h”) e **chamada** com Presente / Falta / Falta justificada (justificadas não entram no % de frequência)
 - Status do aluno: ativo, **afastado** (continua na chamada) e inativo; apelido e histórico de graduação
-- Alunos: cadastro, turma, graduação, responsável, ativo/inativo
+- Alunos: cadastro, turma, graduação, ativo/inativo e **vários responsáveis** (cada um com parentesco, telefone e e-mail), com botões que abrem o **WhatsApp (wa.me)** e o **e-mail** (destinatário, assunto com o nome do aluno e mensagem já preenchidos)
 - Turmas, chamada (presença por data/turma), avaliações de desempenho por critério (0–10)
 - **Link para os pais**: o professor gera um link único (`/acompanhar/<token>`); os pais veem
   graduação, frequência e avaliações sem login. Dá para renovar (invalida o anterior) ou desativar.
@@ -42,12 +42,18 @@ O front-end encaminha `/backend/*` para a API, então o app inteiro responde num
 **ngrok:** instale em ngrok.com/download e rode uma vez `ngrok config add-authtoken SEU_TOKEN`. O `iniciar-ngrok.bat` mostra o link
 público, copia para a área de transferência e abre no navegador. Qualquer pessoa com o link acessa o app: use só para teste e com dados fictícios.
 
-Dados de exemplo (opcional, só para desenvolvimento) — mostra o login ao final:
+Dados de exemplo (opcional, só para desenvolvimento):
 
 ```bash
 cd backend
-.venv\Scripts\python seed.py      # Windows   (Linux/macOS: .venv/bin/python seed.py)
+.venv\Scripts\python seed.py        # conta de teste simples; mostra o login ao final
+.venv\Scripts\python seed_demo.py   # academia de capoeira COMPLETA e fictícia (30 alunos, chamada, avaliações,
+                                    # inscrições, financeiro e clientes de exemplo); logins em backend/demo_login.txt
+.venv\Scripts\python seed_demo.py --refazer   # apaga os dados demo e cria de novo
 ```
+
+O `seed_demo.py` só roda em banco local (SQLite) e se recusa a gravar em banco remoto (Neon).
+(Linux/macOS: use `.venv/bin/python`.)
 
 ### Rodar manualmente
 

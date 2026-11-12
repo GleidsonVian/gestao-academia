@@ -43,7 +43,7 @@ export default function Alunos() {
                   <td>{a.apelido ?? "—"}</td>
                   <td>{a.turma ?? "—"}</td>
                   <td>{a.graduacao ?? "—"}</td>
-                  <td>{a.responsavel_nome ?? "—"}</td>
+                  <td>{a.responsaveis.map((r) => r.nome).join(", ") || "—"}</td>
                   <td>{a.link_ativo ? <span className="selo ok">Ativo</span> : <span className="selo">Não gerado</span>}</td>
                 </tr>
               ))}

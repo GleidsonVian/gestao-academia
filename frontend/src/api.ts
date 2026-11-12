@@ -122,10 +122,12 @@ export type Receita = {
 };
 export const brl = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export type Turma = { id: number; nome: string; horario: string | null; alunos: number };
+export type Responsavel = { id?: number; nome: string; parentesco: string | null; telefone: string | null; email: string | null };
 export type Aluno = {
   id: number; nome: string; apelido: string | null; nascimento: string | null; turma_id: number | null; turma: string | null;
   responsavel_nome: string | null; responsavel_telefone: string | null; email: string | null;
   graduacao: string | null; observacoes: string | null; status: "ativo" | "afastado" | "inativo";
+  responsaveis: Responsavel[];
   link_ativo: boolean; token_pais: string | null; autoriza_imagem: boolean | null;
 };
 export type Inscricao = {

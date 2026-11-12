@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Academia, Aluno, AuditoriaLGPD, ConsentimentoImagem, Documento, Inscricao, Turma, Usuario
+from ..models import Academia, Aluno, AuditoriaLGPD, ConsentimentoImagem, Documento, Inscricao, Responsavel, Turma, Usuario
 from ..assinatura import situacao
 from ..security import usuario_atual
 from ..servicos import UPLOAD_DIR, aparencia, apagar_inscricao
@@ -190,9 +190,10 @@ def aprovar(insc_id: int, body: AprovarIn, u: Usuario = Depends(usuario_atual), 
             raise HTTPException(400, "Turma inválida")
     aluno = Aluno(
         academia_id=u.academia_id, turma_id=body.turma_id, nome=i.nome, nascimento=i.nascimento,
-        responsavel_nome=i.responsavel_nome, responsavel_telefone=i.responsavel_telefone, email=i.email,
+        responsavel_nome=i.responsavel_nome, responsavel_telefone=i.responsavel_telefone,
         graduacao=body.graduacao or None, observacoes=i.observacoes, autoriza_imagem=i.autoriza_imagem,
     )
+    aluno.responsaveis.append(Responsavel(nome=i.responsavel_nome, telefone=i.responsavel_telefone, email=i.email, ordem=0))
     db.add(aluno)
     db.flush()
     db.add(ConsentimentoImagem(aluno_id=aluno.id, autorizado=i.autoriza_imagem, origem="inscricao",

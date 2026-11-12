@@ -103,6 +103,8 @@ def aluno_dict(a: Aluno) -> dict:
         "turma": a.turma.nome if a.turma else None,
         "responsavel_nome": a.responsavel_nome,
         "responsavel_telefone": a.responsavel_telefone,
+        "responsaveis": [{"id": r.id, "nome": r.nome, "parentesco": r.parentesco, "telefone": r.telefone, "email": r.email}
+                         for r in a.responsaveis],
         "email": a.email,
         "graduacao": a.graduacao,
         "observacoes": a.observacoes,
