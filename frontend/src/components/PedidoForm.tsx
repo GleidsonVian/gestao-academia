@@ -29,6 +29,14 @@ export default function PedidoForm({ itens, pedido, alunoInicial, onSalvo, onCan
       .catch((e) => setErro(e.message));
   }, []);
 
+  // Os itens podem chegar depois de o formulário abrir (ex.: vindo da ficha do aluno). Sem isto o campo mostrava
+  // o 1º item na tela, mas nada estava selecionado de verdade e salvar dava "Escolha o item".
+  useEffect(() => {
+    if (!f.item_id && itens.length) {
+      setF((x) => ({ ...x, item_id: String(itens[0].id), cor: itens[0].cores.length === 1 ? itens[0].cores[0] : x.cor }));
+    }
+  }, [itens, f.item_id]);
+
   const item = itens.find((i) => String(i.id) === f.item_id);
   const visiveis = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -82,7 +90,8 @@ export default function PedidoForm({ itens, pedido, alunoInicial, onSalvo, onCan
       <div className="duas">
         <label>
           Item
-          <select value={f.item_id} onChange={(e) => trocarItem(e.target.value)}>
+          <select required value={f.item_id} onChange={(e) => trocarItem(e.target.value)}>
+            {!f.item_id && <option value="">Escolha o item…</option>}
             {itens.map((i) => <option key={i.id} value={i.id}>{i.nome} — {brl(i.preco_centavos)}</option>)}
           </select>
         </label>
