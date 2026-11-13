@@ -7,7 +7,7 @@ App web genérico para qualquer modalidade (capoeira, kickboxing, muay thai, jiu
 
 ## Funcionalidades
 
-- Cadastro/login da academia (professor) com JWT
+- Cadastro/login da academia (professor) com JWT. **Manter conectado neste aparelho**: login de 30 dias que se renova sozinho enquanto a pessoa usa o app (sem marcar, a sessão dura 12 h e termina ao fechar o navegador; a conta de superadmin é limitada a 24 h). A senha nunca é guardada pelo app: quem salva é o gerenciador de senhas do navegador
 - **Inscrição digital**: link público com ficha, documentos, declaração de saúde/responsabilidade e autorização de imagem (opcional); o professor aprova ou recusa
 - **Calendário de aulas** (com **aulas recorrentes**: “toda segunda e quarta às 18h”) e **chamada** com Presente / Falta / Falta justificada (justificadas não entram no % de frequência)
 - Status do aluno: ativo, **afastado** (continua na chamada) e inativo; apelido e histórico de graduação

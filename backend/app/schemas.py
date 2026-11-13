@@ -10,11 +10,13 @@ class RegistrarIn(BaseModel):
     nome: str = Field(min_length=2, max_length=120)
     email: EmailStr
     senha: str = Field(min_length=6, max_length=72)
+    lembrar: bool = False  # 'manter conectado neste aparelho'
 
 
 class LoginIn(BaseModel):
     email: EmailStr
     senha: str
+    lembrar: bool = False  # 'manter conectado neste aparelho'
 
 
 class TokenOut(BaseModel):

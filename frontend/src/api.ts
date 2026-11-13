@@ -1,10 +1,24 @@
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3333";
 const KEY = "academia_token";
 
+let emMemoria: string | null = null; // se o navegador bloquear o armazenamento, a sessao vale ate recarregar a pagina
+
 export const token = {
-  get: () => localStorage.getItem(KEY),
-  set: (t: string) => localStorage.setItem(KEY, t),
-  clear: () => localStorage.removeItem(KEY),
+  get: (): string | null => {
+    try { return localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY) ?? emMemoria; } catch { return emMemoria; }
+  },
+  /** persistir=true (manter conectado): fica no aparelho. false: some quando o navegador for fechado. */
+  set: (t: string, persistir = false) => {
+    emMemoria = t;
+    try {
+      localStorage.removeItem(KEY); sessionStorage.removeItem(KEY);
+      (persistir ? localStorage : sessionStorage).setItem(KEY, t);
+    } catch { /* fica so em memoria */ }
+  },
+  clear: () => {
+    emMemoria = null;
+    try { localStorage.removeItem(KEY); sessionStorage.removeItem(KEY); } catch { /* ok */ }
+  },
 };
 
 export class ApiError extends Error {
@@ -89,8 +103,8 @@ export const api = {
   put: <T>(p: string, b: unknown) => req<T>("PUT", p, b),
   del: <T>(p: string) => req<T>("DELETE", p),
   publico: <T>(p: string) => req<T>("GET", p, undefined, false),
-  login: (email: string, senha: string) => req<{ access_token: string }>("POST", "/auth/login", { email, senha }, false),
-  registrar: (b: Record<string, string>) => req<{ access_token: string }>("POST", "/auth/registrar", b, false),
+  login: (email: string, senha: string, lembrar = false) => req<{ access_token: string }>("POST", "/auth/login", { email, senha, lembrar }, false),
+  registrar: (b: Record<string, unknown>) => req<{ access_token: string }>("POST", "/auth/registrar", b, false),
 };
 
 // ---------- tipos ----------
